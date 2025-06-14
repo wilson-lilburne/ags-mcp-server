@@ -30,18 +30,14 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: ags-mcp-server/package-lock.json
 
     - name: Install dependencies
-      working-directory: ags-mcp-server
       run: npm ci
 
     - name: Build TypeScript
-      working-directory: ags-mcp-server
       run: npm run build
 
     - name: Run tests
-      working-directory: ags-mcp-server
       run: npm test
 
     - name: Set up Docker Buildx
@@ -68,16 +64,12 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Prepare build context
-      working-directory: ags-mcp-server
       run: |
         # Create temporary build context
         mkdir -p /tmp/build-context/app
         cp -r . /tmp/build-context/app/
-        cp -r ../Common /tmp/build-context/
-        cp -r ../Tools /tmp/build-context/
-        cp -r ../libsrc /tmp/build-context/
-        cp -r ../CMake /tmp/build-context/
-        cp ../CMakeLists.txt /tmp/build-context/
+        # Note: For standalone repo, we'll build AGS tools directly from GitHub
+        echo "Building standalone MCP server without local AGS source"
 
     - name: Create Dockerfile
       run: |
@@ -93,20 +85,16 @@ jobs:
             pkg-config \
             && rm -rf /var/lib/apt/lists/*
 
+        # Clone AGS source and build tools
         WORKDIR /ags-source
-        COPY Common ./Common
-        COPY Tools ./Tools  
-        COPY libsrc ./libsrc
-        COPY CMake ./CMake
-        COPY CMakeLists.txt ./CMakeLists.txt
+        RUN git clone --depth 1 https://github.com/adventuregamestudio/ags.git .
 
         RUN mkdir build && cd build && \
             cmake .. \
                 -DAGS_BUILD_TOOLS=ON \
                 -DAGS_BUILD_ENGINE=OFF \
                 -DAGS_BUILD_COMPILER=OFF \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DAGS_USE_LOCAL_ALL_LIBRARIES=OFF && \
+                -DCMAKE_BUILD_TYPE=Release && \
             cmake --build . --target crmpak --target crm2ash -- -j$(nproc)
 
         RUN ./build/Tools/crmpak --help
