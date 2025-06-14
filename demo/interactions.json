@@ -1,0 +1,11 @@
+{
+  "hotspot1": {
+    "Look": "hotspot1_Look",
+    "Interact": "hotspot1_Interact",
+    "UseInv": "hotspot1_UseInv"
+  },
+  "hotspot2": {
+    "Look": "hotspot2_Look",
+    "Interact": "hotspot2_Interact"
+  }
+}

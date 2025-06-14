@@ -1,0 +1,31 @@
+{
+  "hotspots": [
+    {
+      "id": 0,
+      "name": "Background",
+      "scriptName": "hHotspot0"
+    },
+    {
+      "id": 1,
+      "name": "Door",
+      "scriptName": "hDoor"
+    },
+    {
+      "id": 2,
+      "name": "Table",
+      "scriptName": "hTable"
+    }
+  ],
+  "objects": [
+    {
+      "id": 0,
+      "name": "Key",
+      "scriptName": "oKey"
+    },
+    {
+      "id": 1,
+      "name": "Book",
+      "scriptName": "oBook"
+    }
+  ]
+}
