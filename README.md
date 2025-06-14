@@ -65,10 +65,38 @@ docker run -p 3000:3000 \
 docker-compose -f docker-compose.simple.yml up
 ```
 
-**📦 Pre-built Image (Future)**
+**📦 Pre-built Image (Recommended)**
 ```bash
-# When available from GitHub Container Registry
-docker run -p 3000:3000 ghcr.io/your-org/ags-mcp-server:latest
+# Pull and run from GitHub Container Registry
+docker pull ghcr.io/wilson-lilburne/ags-mcp-server:latest
+docker run -p 3000:3000 ghcr.io/wilson-lilburne/ags-mcp-server:latest
+```
+
+### 🪟 Windows Setup
+
+**Prerequisites**: Docker Desktop for Windows
+
+**Pull and Test**:
+```powershell
+docker pull ghcr.io/wilson-lilburne/ags-mcp-server:latest
+docker run --rm ghcr.io/wilson-lilburne/ags-mcp-server:latest crmpak --help
+```
+
+**Run MCP Server**:
+```powershell
+docker run -d --name ags-mcp-server -p 3000:3000 ghcr.io/wilson-lilburne/ags-mcp-server:latest
+```
+
+**Claude Desktop Config** (`%APPDATA%\Claude\claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "ags-server": {
+      "command": "docker",
+      "args": ["exec", "-i", "ags-mcp-server", "node", "dist/index.js"]
+    }
+  }
+}
 ```
 
 ## 🔧 MCP Tools
