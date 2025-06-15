@@ -23,6 +23,12 @@ jobs:
             platform: darwin
 
     steps:
+      # Cleanup any existing artifacts from previous runs
+      - name: Cleanup
+        run: |
+          if [ -d "bin" ]; then rm -rf bin; fi
+        shell: bash
+          
       - uses: actions/checkout@v4
       
       - name: Use Node.js ${{ matrix.node-version }}
@@ -139,7 +145,7 @@ jobs:
       - name: Build AGS tools on Windows
         if: matrix.platform == 'win32'
         run: |
-          mkdir -p bin/${{ matrix.platform }}/x64
+          New-Item -ItemType Directory -Path bin\${{ matrix.platform }}\x64 -Force
           cd ../ags
           
           # Debug: Show current directory
