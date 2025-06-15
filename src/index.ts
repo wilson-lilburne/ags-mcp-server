@@ -10,6 +10,16 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { AGSCrmManager } from './ags-crm-manager.js';
 import { Command } from 'commander';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Get package version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const packageJsonPath = path.join(__dirname, '../package.json');
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+const packageVersion = packageJson.version;
 
 /**
  * AGS MCP Server for .crm file manipulation
@@ -23,7 +33,7 @@ class AGSMcpServer {
     this.server = new Server(
       {
         name: 'ags-mcp-server',
-        version: '0.1.0',
+        version: packageVersion,
       },
       {
         capabilities: {
@@ -284,7 +294,7 @@ const program = new Command();
 program
   .name('ags-mcp-server')
   .description('MCP Server for AGS .crm file manipulation')
-  .version('0.1.0');
+  .version(packageVersion);
 
 program
   .command('demo', { isDefault: false })
