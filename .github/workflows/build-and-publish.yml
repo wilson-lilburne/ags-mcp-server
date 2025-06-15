@@ -71,17 +71,17 @@ jobs:
           echo "Tools directory contents before CMake:"
           ls -la Tools || echo "Tools directory not found"
           
+          # Create a separate build directory to avoid conflicts
+          mkdir -p build_dir
+          cd build_dir
+          
           # Configure with debug output
           echo "Running CMake configure..."
-          cmake . -DAGS_BUILD_TOOLS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
+          cmake .. -DAGS_BUILD_TOOLS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
           
           # Debug: Check CMake output
           echo "CMake output files:"
           ls -la CMakeFiles
-          
-          # Debug: Check if Tools directory exists after configure
-          echo "Tools directory contents after CMake configure:"
-          ls -la Tools || echo "Tools directory not found"
           
           # Build with debug output
           echo "Running CMake build..."
@@ -89,11 +89,11 @@ jobs:
           
           # Debug: Check build output
           echo "Build output directory contents:"
-          ls -la build/Tools || echo "build/Tools directory not found"
+          ls -la Tools || echo "Tools directory not found in build"
           
-          # Try to copy the binary
+          # Try to copy the binary - search for it in the build directory
           echo "Copying binary to bin directory..."
-          cp build/Tools/crmpak ../ags-mcp-server/bin/${{ matrix.platform }}/x64/ || echo "Failed to copy crmpak binary"
+          find . -name "crmpak" -type f -exec cp {} ../../ags-mcp-server/bin/${{ matrix.platform }}/x64/ \;
       
       - name: Build AGS tools on macOS
         if: matrix.platform == 'darwin'
@@ -118,17 +118,17 @@ jobs:
           echo "Tools directory contents before CMake:"
           ls -la Tools || echo "Tools directory not found"
           
+          # Create a separate build directory to avoid conflicts
+          mkdir -p build_dir
+          cd build_dir
+          
           # Configure with debug output
           echo "Running CMake configure..."
-          cmake . -DAGS_BUILD_TOOLS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
+          cmake .. -DAGS_BUILD_TOOLS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
           
           # Debug: Check CMake output
           echo "CMake output files:"
           ls -la CMakeFiles
-          
-          # Debug: Check if Tools directory exists after configure
-          echo "Tools directory contents after CMake configure:"
-          ls -la Tools || echo "Tools directory not found"
           
           # Build with debug output
           echo "Running CMake build..."
@@ -136,11 +136,11 @@ jobs:
           
           # Debug: Check build output
           echo "Build output directory contents:"
-          ls -la build/Tools || echo "build/Tools directory not found"
+          ls -la Tools || echo "Tools directory not found in build"
           
-          # Try to copy the binary
+          # Try to copy the binary - search for it in the build directory
           echo "Copying binary to bin directory..."
-          cp build/Tools/crmpak ../ags-mcp-server/bin/${{ matrix.platform }}/x64/ || echo "Failed to copy crmpak binary"
+          find . -name "crmpak" -type f -exec cp {} ../../ags-mcp-server/bin/${{ matrix.platform }}/x64/ \;
       
       - name: Build AGS tools on Windows
         if: matrix.platform == 'win32'
@@ -163,17 +163,17 @@ jobs:
           echo "Tools directory contents before CMake:"
           dir Tools -ErrorAction SilentlyContinue
           
+          # Create a separate build directory to avoid conflicts
+          New-Item -ItemType Directory -Path build_dir -Force
+          cd build_dir
+          
           # Configure with debug output
           echo "Running CMake configure..."
-          cmake . -DAGS_BUILD_TOOLS=ON
+          cmake .. -DAGS_BUILD_TOOLS=ON
           
           # Debug: Check CMake output
           echo "CMake output files:"
           dir CMakeFiles
-          
-          # Debug: Check if Tools directory exists after configure
-          echo "Tools directory contents after CMake configure:"
-          dir Tools -ErrorAction SilentlyContinue
           
           # Build with debug output
           echo "Running CMake build..."
@@ -181,13 +181,12 @@ jobs:
           
           # Debug: Check build output
           echo "Build output directory contents:"
-          dir build\Tools -ErrorAction SilentlyContinue
+          dir Tools -ErrorAction SilentlyContinue
           
-          # Try to copy the binary
+          # Try to copy the binary - search for it in the build directory
           echo "Copying binary to bin directory..."
-          copy build\Tools\crmpak.exe ..\ags-mcp-server\bin\${{ matrix.platform }}\x64\ -ErrorAction SilentlyContinue
-          if (-not $?) {
-            echo "Failed to copy crmpak.exe binary"
+          Get-ChildItem -Path . -Recurse -Filter "crmpak.exe" | ForEach-Object {
+            Copy-Item $_.FullName -Destination "..\..\ags-mcp-server\bin\${{ matrix.platform }}\x64\"
           }
       
       - name: Upload binaries
