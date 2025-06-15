@@ -34,8 +34,10 @@ export interface Hotspot {
  */
 export class AGSCrmManager {
   private crmpakPath: string;
+  private silent: boolean;
 
-  constructor() {
+  constructor(options: { silent?: boolean } = {}) {
+    this.silent = options.silent || false;
     // Find crmpak binary relative to the project
     this.crmpakPath = this.findCrmpakBinary();
   }
@@ -74,7 +76,9 @@ export class AGSCrmManager {
     for (const candidate of candidates) {
       try {
         if (existsSync(candidate)) {
-          console.log(`Found crmpak binary at: ${candidate}`);
+          if (!this.silent) {
+            console.log(`Found crmpak binary at: ${candidate}`);
+          }
           return candidate;
         }
       } catch (e) {

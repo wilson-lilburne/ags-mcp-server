@@ -29,7 +29,7 @@ class AGSMcpServer {
   private server: Server;
   private crmManager: AGSCrmManager;
 
-  constructor() {
+  constructor(options: { silent?: boolean } = {}) {
     this.server = new Server(
       {
         name: 'ags-mcp-server',
@@ -42,7 +42,8 @@ class AGSMcpServer {
       },
     );
 
-    this.crmManager = new AGSCrmManager();
+    // When running in JSON-RPC mode, we want to suppress diagnostic messages
+    this.crmManager = new AGSCrmManager({ silent: options.silent });
     this.setupHandlers();
   }
 
@@ -312,7 +313,9 @@ program
 program
   .action(() => {
     // Default action is to start the MCP server
-    const server = new AGSMcpServer();
+    // When no command is specified, we're likely running in JSON-RPC mode
+    // so we want to suppress diagnostic messages
+    const server = new AGSMcpServer({ silent: true });
     server.run().catch((error) => {
       console.error('Server failed to start:', error);
       process.exit(1);
