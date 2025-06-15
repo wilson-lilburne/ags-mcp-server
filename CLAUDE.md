@@ -201,5 +201,8 @@ async function processRooms(roomFiles) {
 ## Version History
 
 - **v0.1.7**: Fixed hotspot extraction to read from Main block instead of ObjNames
-- **v0.1.6**: Added Windows binary compatibility improvements
+- **v0.1.6**: Added Windows binary compatibility improvements  
 - **v0.1.0**: Initial implementation with basic .crm file support
+
+---
+*Last updated: June 15, 2025*
