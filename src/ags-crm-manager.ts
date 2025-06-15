@@ -33,16 +33,22 @@ export interface Hotspot {
  * Manages AGS compiled room (.crm) file operations using crmpak tool
  */
 export class AGSCrmManager {
-  private crmpakPath: string;
+  private crmpakPath: string | null;
   private silent: boolean;
+  private binaryAvailable: boolean;
 
   constructor(options: { silent?: boolean } = {}) {
     this.silent = options.silent || false;
     // Find crmpak binary relative to the project
     this.crmpakPath = this.findCrmpakBinary();
+    this.binaryAvailable = this.crmpakPath !== null;
+    
+    if (!this.binaryAvailable && !this.silent) {
+      console.warn('AGS CRM Manager initialized without crmpak binary. Block operations will not be available.');
+    }
   }
 
-  private findCrmpakBinary(): string {
+  private findCrmpakBinary(): string | null {
     const platform = process.platform; // 'win32', 'darwin', 'linux'
     const arch = process.arch; // 'x64', 'arm64', etc.
     const extension = platform === 'win32' ? '.exe' : '';
@@ -86,29 +92,45 @@ export class AGSCrmManager {
       }
     }
     
-    console.warn('No crmpak binary found, will use fallback implementations where available');
-    // Default to 'crmpak' and let spawn handle the error, or fallback implementations will be used
-    return `crmpak${extension}`;
+    if (!this.silent) {
+      console.error('No crmpak binary found. Block operations will not be available.');
+    }
+    return null; // Return null to indicate no binary was found
   }
 
   private async execCrmpak(args: string[]): Promise<string> {
     return new Promise((resolve, reject) => {
+      // Check if binary is available
+      if (!this.binaryAvailable || this.crmpakPath === null) {
+        reject(new Error('crmpak binary not available. Block operations are not supported.'));
+        return;
+      }
+      
+      // Use shell: true on Windows to help with process spawning
+      const isWindows = process.platform === 'win32';
+      
+      if (!this.silent) {
+        console.log(`Executing: ${this.crmpakPath} ${args.join(' ')}`);
+      }
+      
       const proc = spawn(this.crmpakPath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
+        shell: isWindows, // Use shell on Windows
+        windowsVerbatimArguments: isWindows, // Preserve quotes on Windows
       });
 
       let stdout = '';
       let stderr = '';
 
-      proc.stdout.on('data', (data) => {
+      proc.stdout.on('data', (data: Buffer) => {
         stdout += data.toString();
       });
 
-      proc.stderr.on('data', (data) => {
+      proc.stderr.on('data', (data: Buffer) => {
         stderr += data.toString();
       });
 
-      proc.on('close', (code) => {
+      proc.on('close', (code: number | null) => {
         if (code === 0) {
           resolve(stdout);
         } else {
@@ -116,7 +138,12 @@ export class AGSCrmManager {
         }
       });
 
-      proc.on('error', (error) => {
+      proc.on('error', (error: Error) => {
+        if (!this.silent) {
+          console.error(`Spawn error: ${error.message}`);
+          console.error(`Binary path: ${this.crmpakPath}`);
+          console.error(`Arguments: ${args.join(' ')}`);
+        }
         reject(new Error(`Failed to execute crmpak: ${error.message}`));
       });
     });
@@ -125,7 +152,7 @@ export class AGSCrmManager {
   /**
    * List all blocks in a .crm file
    */
-  async listRoomBlocks(roomFile: string): Promise<{ content: RoomBlock[]; isError?: boolean }> {
+  async listRoomBlocks(roomFile: string): Promise<{ content: RoomBlock[]; isError?: boolean; message?: string }> {
     try {
       const output = await this.execCrmpak([roomFile, '-l']);
       const blocks: RoomBlock[] = [];
@@ -153,6 +180,7 @@ export class AGSCrmManager {
       return {
         content: [],
         isError: true,
+        message: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -160,7 +188,7 @@ export class AGSCrmManager {
   /**
    * Read comprehensive room data from a .crm file
    */
-  async readRoomData(roomFile: string): Promise<{ content: RoomData; isError?: boolean }> {
+  async readRoomData(roomFile: string): Promise<{ content: RoomData; isError?: boolean; message?: string }> {
     try {
       const blocks = await this.listRoomBlocks(roomFile);
       
@@ -181,6 +209,7 @@ export class AGSCrmManager {
       return {
         content: { blocks: [] },
         isError: true,
+        message: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -193,7 +222,7 @@ export class AGSCrmManager {
     blockId: string | number,
     outputFile: string,
     unpack: boolean = false
-  ): Promise<{ content: string; isError?: boolean }> {
+  ): Promise<{ content: string; isError?: boolean; message?: string }> {
     try {
       const args = [roomFile, '-e', blockId.toString(), outputFile];
       if (unpack) {
@@ -206,6 +235,7 @@ export class AGSCrmManager {
       return {
         content: `Failed to export block: ${error instanceof Error ? error.message : String(error)}`,
         isError: true,
+        message: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -218,7 +248,7 @@ export class AGSCrmManager {
     blockId: string | number,
     inputFile: string,
     outputFile?: string
-  ): Promise<{ content: string; isError?: boolean }> {
+  ): Promise<{ content: string; isError?: boolean; message?: string }> {
     try {
       const args = [roomFile, '-i', blockId.toString(), inputFile];
       if (outputFile) {
@@ -232,6 +262,7 @@ export class AGSCrmManager {
       return {
         content: `Failed to import block: ${error instanceof Error ? error.message : String(error)}`,
         isError: true,
+        message: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -239,58 +270,53 @@ export class AGSCrmManager {
   /**
    * Extract hotspot information from a room
    */
-  async getRoomHotspots(roomFile: string): Promise<{ content: Hotspot[]; isError?: boolean }> {
+  async getRoomHotspots(roomFile: string): Promise<{ content: Hotspot[]; isError?: boolean; message?: string }> {
     try {
+      // Check if binary is available
+      if (!this.binaryAvailable) {
+        throw new Error('crmpak binary not available. Hotspot operations are not supported.');
+      }
+      
       // Get ObjNames block (block 5) which contains hotspot names
       const tempDir = process.platform === 'win32' ? 
         path.join(process.env.TEMP || 'C:\\Windows\\Temp') : 
         '/tmp';
       const tempFile = path.join(tempDir, `objnames_${Date.now()}.txt`);
       
-      try {
-        await this.execCrmpak([roomFile, '-e', '5', tempFile, '-u']);
-        
-        // Read the exported names
-        const namesContent = await fsPromises.readFile(tempFile, 'utf-8');
-        const lines = namesContent.split('\n').filter(line => line.trim());
-        
-        const hotspots: Hotspot[] = [];
-        
-        // Parse hotspot names (typically starts with hotspot names)
-        lines.forEach((line, index) => {
-          if (line.trim()) {
-            hotspots.push({
-              id: index,
-              name: line.trim(),
-              scriptName: `hHotspot${index}`,
-              interactions: ['Look', 'Interact'], // Default interactions
-            });
-          }
-        });
-
-        // Clean up temp file
-        try {
-          await fsPromises.unlink(tempFile);
-        } catch (e) {
-          // Ignore cleanup errors
+      // Export the ObjNames block
+      await this.execCrmpak([roomFile, '-e', '5', tempFile, '-u']);
+      
+      // Read the exported names
+      const namesContent = await fsPromises.readFile(tempFile, 'utf-8');
+      const lines = namesContent.split('\n').filter(line => line.trim());
+      
+      const hotspots: Hotspot[] = [];
+      
+      // Parse hotspot names (typically starts with hotspot names)
+      lines.forEach((line, index) => {
+        if (line.trim()) {
+          hotspots.push({
+            id: index,
+            name: line.trim(),
+            scriptName: `hHotspot${index}`,
+            interactions: ['Look', 'Interact'], // Default interactions
+          });
         }
+      });
 
-        return { content: hotspots };
+      // Clean up temp file
+      try {
+        await fsPromises.unlink(tempFile);
       } catch (e) {
-        // If we can't export ObjNames, return a basic hotspot
-        return {
-          content: [{
-            id: 0,
-            name: 'Background',
-            scriptName: 'hHotspot0',
-            interactions: ['Look', 'Interact'],
-          }],
-        };
+        // Ignore cleanup errors
       }
+
+      return { content: hotspots };
     } catch (error) {
       return {
         content: [],
         isError: true,
+        message: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -304,7 +330,7 @@ export class AGSCrmManager {
     event: string,
     functionName: string,
     outputFile?: string
-  ): Promise<{ content: string; isError?: boolean }> {
+  ): Promise<{ content: string; isError?: boolean; message?: string }> {
     try {
       // This would require modifying the compiled script block
       // For now, return a success message indicating what would be done
@@ -319,6 +345,7 @@ export class AGSCrmManager {
       return {
         content: `Failed to add hotspot interaction: ${error instanceof Error ? error.message : String(error)}`,
         isError: true,
+        message: error instanceof Error ? error.message : String(error)
       };
     }
   }
