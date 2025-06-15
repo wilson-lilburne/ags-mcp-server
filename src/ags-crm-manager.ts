@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { promises as fsPromises, existsSync } from 'fs';
+import { promises as fsPromises, existsSync, statSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -62,6 +62,9 @@ export class AGSCrmManager {
       // Check in bin directory relative to current working directory
       path.join(process.cwd(), 'bin', platform, arch, `crmpak${extension}`),
       path.join(process.cwd(), 'node_modules/ags-mcp-server/bin', platform, arch, `crmpak${extension}`),
+      
+      // Check in global npm installation
+      path.join(process.env.APPDATA || '', 'npm/node_modules/ags-mcp-server/bin', platform, arch, `crmpak${extension}`),
     ];
     
     // Then check traditional locations
@@ -78,14 +81,22 @@ export class AGSCrmManager {
     
     const candidates = [...platformSpecificCandidates, ...traditionalCandidates];
     
-    // Check each candidate and return the first one that exists
+    // Check each candidate and return the first one that is a valid executable
     for (const candidate of candidates) {
       try {
         if (existsSync(candidate)) {
-          if (!this.silent) {
-            console.log(`Found crmpak binary at: ${candidate}`);
+          // Check if the file is a valid executable (not a placeholder)
+          const stats = statSync(candidate);
+          const isValidSize = stats.size > 1000; // A real executable should be larger than 1KB
+          
+          if (isValidSize) {
+            if (!this.silent) {
+              console.log(`Found crmpak binary at: ${candidate}`);
+            }
+            return candidate;
+          } else if (!this.silent) {
+            console.warn(`Found crmpak binary at ${candidate} but it appears to be a placeholder (size: ${stats.size} bytes). Skipping.`);
           }
-          return candidate;
         }
       } catch (e) {
         // Continue to next candidate
@@ -93,7 +104,7 @@ export class AGSCrmManager {
     }
     
     if (!this.silent) {
-      console.error('No crmpak binary found. Block operations will not be available.');
+      console.error('No valid crmpak binary found. Block operations will not be available.');
     }
     return null; // Return null to indicate no binary was found
   }
@@ -144,7 +155,18 @@ export class AGSCrmManager {
           console.error(`Binary path: ${this.crmpakPath}`);
           console.error(`Arguments: ${args.join(' ')}`);
         }
-        reject(new Error(`Failed to execute crmpak: ${error.message}`));
+        
+        // Check for Windows compatibility error
+        if (error.message.includes('not compatible with the version of Windows')) {
+          reject(new Error(
+            `The crmpak binary is not compatible with your version of Windows. ` +
+            `This may be due to using a placeholder or incompatible binary. ` +
+            `Please ensure you have a compatible binary installed. ` +
+            `Original error: ${error.message}`
+          ));
+        } else {
+          reject(new Error(`Failed to execute crmpak: ${error.message}`));
+        }
       });
     });
   }

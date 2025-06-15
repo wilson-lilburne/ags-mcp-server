@@ -169,7 +169,8 @@ jobs:
           
           # Configure with debug output
           echo "Running CMake configure..."
-          cmake .. -DAGS_BUILD_TOOLS=ON
+          # Add specific flags for Windows compatibility
+          cmake .. -DAGS_BUILD_TOOLS=ON -DCMAKE_SYSTEM_VERSION=8.1 -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=8.1
           
           # Debug: Check CMake output
           echo "CMake output files:"
