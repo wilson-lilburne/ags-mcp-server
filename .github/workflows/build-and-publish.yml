@@ -46,30 +46,143 @@ jobs:
         run: |
           mkdir -p bin/${{ matrix.platform }}/x64
           cd ../ags
+          
+          # Debug: Show current directory
+          echo "Current directory: $(pwd)"
+          
+          # Debug: List directory contents
+          echo "Directory contents:"
+          ls -la
+          
           sudo apt-get update
           sudo apt-get install -y build-essential cmake
-          cmake . -DAGS_BUILD_TOOLS=ON
-          cmake --build . --target crmpak
-          cp build/Tools/crmpak ../ags-mcp-server/bin/${{ matrix.platform }}/x64/
+          
+          # Debug: Show CMake version
+          echo "CMake version:"
+          cmake --version
+          
+          # Debug: Check if Tools directory exists
+          echo "Tools directory contents before CMake:"
+          ls -la Tools || echo "Tools directory not found"
+          
+          # Configure with debug output
+          echo "Running CMake configure..."
+          cmake . -DAGS_BUILD_TOOLS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
+          
+          # Debug: Check CMake output
+          echo "CMake output files:"
+          ls -la CMakeFiles
+          
+          # Debug: Check if Tools directory exists after configure
+          echo "Tools directory contents after CMake configure:"
+          ls -la Tools || echo "Tools directory not found"
+          
+          # Build with debug output
+          echo "Running CMake build..."
+          cmake --build . --target crmpak --verbose
+          
+          # Debug: Check build output
+          echo "Build output directory contents:"
+          ls -la build/Tools || echo "build/Tools directory not found"
+          
+          # Try to copy the binary
+          echo "Copying binary to bin directory..."
+          cp build/Tools/crmpak ../ags-mcp-server/bin/${{ matrix.platform }}/x64/ || echo "Failed to copy crmpak binary"
       
       - name: Build AGS tools on macOS
         if: matrix.platform == 'darwin'
         run: |
           mkdir -p bin/${{ matrix.platform }}/x64
           cd ../ags
+          
+          # Debug: Show current directory
+          echo "Current directory: $(pwd)"
+          
+          # Debug: List directory contents
+          echo "Directory contents:"
+          ls -la
+          
           brew install cmake
-          cmake . -DAGS_BUILD_TOOLS=ON
-          cmake --build . --target crmpak
-          cp build/Tools/crmpak ../ags-mcp-server/bin/${{ matrix.platform }}/x64/
+          
+          # Debug: Show CMake version
+          echo "CMake version:"
+          cmake --version
+          
+          # Debug: Check if Tools directory exists
+          echo "Tools directory contents before CMake:"
+          ls -la Tools || echo "Tools directory not found"
+          
+          # Configure with debug output
+          echo "Running CMake configure..."
+          cmake . -DAGS_BUILD_TOOLS=ON -DCMAKE_VERBOSE_MAKEFILE=ON
+          
+          # Debug: Check CMake output
+          echo "CMake output files:"
+          ls -la CMakeFiles
+          
+          # Debug: Check if Tools directory exists after configure
+          echo "Tools directory contents after CMake configure:"
+          ls -la Tools || echo "Tools directory not found"
+          
+          # Build with debug output
+          echo "Running CMake build..."
+          cmake --build . --target crmpak --verbose
+          
+          # Debug: Check build output
+          echo "Build output directory contents:"
+          ls -la build/Tools || echo "build/Tools directory not found"
+          
+          # Try to copy the binary
+          echo "Copying binary to bin directory..."
+          cp build/Tools/crmpak ../ags-mcp-server/bin/${{ matrix.platform }}/x64/ || echo "Failed to copy crmpak binary"
       
       - name: Build AGS tools on Windows
         if: matrix.platform == 'win32'
         run: |
           mkdir -p bin/${{ matrix.platform }}/x64
           cd ../ags
+          
+          # Debug: Show current directory
+          echo "Current directory: $pwd"
+          
+          # Debug: List directory contents
+          echo "Directory contents:"
+          dir
+          
+          # Debug: Show CMake version
+          echo "CMake version:"
+          cmake --version
+          
+          # Debug: Check if Tools directory exists
+          echo "Tools directory contents before CMake:"
+          dir Tools -ErrorAction SilentlyContinue
+          
+          # Configure with debug output
+          echo "Running CMake configure..."
           cmake . -DAGS_BUILD_TOOLS=ON
-          cmake --build . --target crmpak
-          cp build/Tools/crmpak.exe ../ags-mcp-server/bin/${{ matrix.platform }}/x64/
+          
+          # Debug: Check CMake output
+          echo "CMake output files:"
+          dir CMakeFiles
+          
+          # Debug: Check if Tools directory exists after configure
+          echo "Tools directory contents after CMake configure:"
+          dir Tools -ErrorAction SilentlyContinue
+          
+          # Build with debug output
+          echo "Running CMake build..."
+          cmake --build . --target crmpak --verbose
+          
+          # Debug: Check build output
+          echo "Build output directory contents:"
+          dir build\Tools -ErrorAction SilentlyContinue
+          
+          # Try to copy the binary
+          echo "Copying binary to bin directory..."
+          copy build\Tools\crmpak.exe ..\ags-mcp-server\bin\${{ matrix.platform }}\x64\ -ErrorAction SilentlyContinue
+          if (-not $?) {
+            echo "Failed to copy crmpak.exe binary"
+          }
       
       - name: Upload binaries
         uses: actions/upload-artifact@v4
