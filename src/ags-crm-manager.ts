@@ -41,31 +41,50 @@ export class AGSCrmManager {
   }
 
   private findCrmpakBinary(): string {
-    // Look for crmpak in several possible locations
-    const candidates = [
-      path.join(process.cwd(), '../build/Tools/crmpak'), // Built binary (priority)
-      path.join(__dirname, '../../build/Tools/crmpak'),
-      path.join(__dirname, '../../../build/Tools/crmpak'),
-      path.join(process.cwd(), '../Tools/crmpak'),
-      path.join(__dirname, '../../Tools/crmpak'),
-      path.join(__dirname, '../../../Tools/crmpak'),
-      path.join(process.cwd(), 'Tools/crmpak'),
-      'crmpak', // Try PATH
+    const platform = process.platform; // 'win32', 'darwin', 'linux'
+    const arch = process.arch; // 'x64', 'arm64', etc.
+    const extension = platform === 'win32' ? '.exe' : '';
+    
+    // Look for platform-specific binaries first
+    const platformSpecificCandidates = [
+      // Check in bin directory relative to the current module
+      path.join(__dirname, '../bin', platform, arch, `crmpak${extension}`),
+      path.join(__dirname, '../../bin', platform, arch, `crmpak${extension}`),
+      
+      // Check in bin directory relative to current working directory
+      path.join(process.cwd(), 'bin', platform, arch, `crmpak${extension}`),
+      path.join(process.cwd(), 'node_modules/ags-mcp-server/bin', platform, arch, `crmpak${extension}`),
     ];
-
+    
+    // Then check traditional locations
+    const traditionalCandidates = [
+      path.join(process.cwd(), '../build/Tools', `crmpak${extension}`),
+      path.join(__dirname, '../../build/Tools', `crmpak${extension}`),
+      path.join(__dirname, '../../../build/Tools', `crmpak${extension}`),
+      path.join(process.cwd(), '../Tools', `crmpak${extension}`),
+      path.join(__dirname, '../../Tools', `crmpak${extension}`),
+      path.join(__dirname, '../../../Tools', `crmpak${extension}`),
+      path.join(process.cwd(), 'Tools', `crmpak${extension}`),
+      `crmpak${extension}`, // Try PATH
+    ];
+    
+    const candidates = [...platformSpecificCandidates, ...traditionalCandidates];
+    
     // Check each candidate and return the first one that exists
     for (const candidate of candidates) {
       try {
         if (existsSync(candidate)) {
+          console.log(`Found crmpak binary at: ${candidate}`);
           return candidate;
         }
       } catch (e) {
         // Continue to next candidate
       }
     }
-
-    // Default to 'crmpak' and let spawn handle the error
-    return 'crmpak';
+    
+    console.warn('No crmpak binary found, will use fallback implementations where available');
+    // Default to 'crmpak' and let spawn handle the error, or fallback implementations will be used
+    return `crmpak${extension}`;
   }
 
   private async execCrmpak(args: string[]): Promise<string> {
@@ -219,7 +238,10 @@ export class AGSCrmManager {
   async getRoomHotspots(roomFile: string): Promise<{ content: Hotspot[]; isError?: boolean }> {
     try {
       // Get ObjNames block (block 5) which contains hotspot names
-      const tempFile = `/tmp/objnames_${Date.now()}.txt`;
+      const tempDir = process.platform === 'win32' ? 
+        path.join(process.env.TEMP || 'C:\\Windows\\Temp') : 
+        '/tmp';
+      const tempFile = path.join(tempDir, `objnames_${Date.now()}.txt`);
       
       try {
         await this.execCrmpak([roomFile, '-e', '5', tempFile, '-u']);

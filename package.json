@@ -4,6 +4,9 @@
   "description": "MCP Server for AGS .crm file manipulation",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "ags-mcp-server": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",

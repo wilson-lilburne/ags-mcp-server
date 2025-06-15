@@ -9,6 +9,7 @@ import {
   ErrorCode,
 } from '@modelcontextprotocol/sdk/types.js';
 import { AGSCrmManager } from './ags-crm-manager.js';
+import { Command } from 'commander';
 
 /**
  * AGS MCP Server for .crm file manipulation
@@ -277,9 +278,35 @@ class AGSMcpServer {
   }
 }
 
-// Start the server
-const server = new AGSMcpServer();
-server.run().catch((error) => {
-  console.error('Server failed to start:', error);
-  process.exit(1);
-});
+// Parse command line arguments
+const program = new Command();
+
+program
+  .name('ags-mcp-server')
+  .description('MCP Server for AGS .crm file manipulation')
+  .version('0.1.0');
+
+program
+  .command('demo', { isDefault: false })
+  .description('Run the demo to show MCP tools functionality')
+  .action(async () => {
+    try {
+      // Import and run the demo script
+      await import('./demo.js');
+    } catch (error) {
+      console.error('Failed to run demo:', error);
+      process.exit(1);
+    }
+  });
+
+program
+  .action(() => {
+    // Default action is to start the MCP server
+    const server = new AGSMcpServer();
+    server.run().catch((error) => {
+      console.error('Server failed to start:', error);
+      process.exit(1);
+    });
+  });
+
+program.parse();

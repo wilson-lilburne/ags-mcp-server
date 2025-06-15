@@ -1,141 +1,122 @@
-name: Build and Publish AGS MCP Server
+name: Build and Publish
 
 on:
   push:
-    branches: [ main, master ]
-    tags: [ 'v*' ]
+    branches: [main, master]
+    tags: ['v*']
   pull_request:
-    branches: [ main, master ]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ags-mcp-server
+    branches: [main, master]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18.x]
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: win32
+          - os: macos-latest
+            platform: darwin
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        # Fetch full history for complete AGS source
-        fetch-depth: 0
-
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Build TypeScript
-      run: npm run build
-
-    - name: Run tests
-      run: npm test
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Log in to Container Registry
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: Prepare build context
-      run: |
-        # Create temporary build context
-        mkdir -p /tmp/build-context/app
-        cp -r . /tmp/build-context/app/
-        # Note: For standalone repo, we'll build AGS tools directly from GitHub
-        echo "Building standalone MCP server without local AGS source"
-
-    - name: Create Dockerfile
-      run: |
-        cat > /tmp/build-context/Dockerfile << 'EOF'
-        # Multi-stage build for AGS MCP Server with embedded tools
-        FROM ubuntu:22.04 as ags-builder
-
-        RUN apt-get update && apt-get install -y \
-            build-essential \
-            cmake \
-            git \
-            wget \
-            pkg-config \
-            && rm -rf /var/lib/apt/lists/*
-
-        # Clone AGS source and build tools
-        WORKDIR /ags-source
-        RUN git clone --depth 1 https://github.com/adventuregamestudio/ags.git .
-
-        RUN mkdir build && cd build && \
-            cmake .. \
-                -DAGS_BUILD_TOOLS=ON \
-                -DAGS_BUILD_ENGINE=OFF \
-                -DAGS_BUILD_COMPILER=OFF \
-                -DCMAKE_BUILD_TYPE=Release && \
-            cmake --build . --target crmpak --target crm2ash -- -j$(nproc)
-
-        RUN ./build/Tools/crmpak --help
-
-        FROM node:18-slim as runtime
-
-        COPY --from=ags-builder /ags-source/build/Tools/crmpak /usr/local/bin/crmpak
-        COPY --from=ags-builder /ags-source/build/Tools/crm2ash /usr/local/bin/crm2ash
-        RUN chmod +x /usr/local/bin/crmpak /usr/local/bin/crm2ash
-
-        WORKDIR /app
-        COPY app/package*.json ./
-        RUN npm ci --only=production
-
-        COPY app/dist/ ./dist/
-        RUN mkdir -p /app/rooms /app/games
-
-        RUN groupadd -r ags && useradd -r -g ags ags && chown -R ags:ags /app
-        USER ags
-
-        HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
-            CMD crmpak --help > /dev/null || exit 1
-
-        EXPOSE 3000
-        ENV NODE_ENV=production
-
-        CMD ["node", "dist/index.js"]
-        EOF
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: /tmp/build-context
-        platforms: linux/amd64,linux/arm64
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    - name: Test Docker image
-      if: github.event_name != 'pull_request'
-      run: |
-        docker run --rm ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest crmpak --help
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build TypeScript
+        run: npm run build
+      
+      - name: Clone AGS repository
+        run: |
+          git clone --depth 1 https://github.com/adventuregamestudio/ags.git ../ags
+      
+      - name: Build AGS tools on Linux
+        if: matrix.platform == 'linux'
+        run: |
+          mkdir -p bin/${{ matrix.platform }}/x64
+          cd ../ags
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake
+          cmake . -DAGS_BUILD_TOOLS=ON
+          cmake --build . --target crmpak
+          cp build/Tools/crmpak ../ags-mcp-server/bin/${{ matrix.platform }}/x64/
+      
+      - name: Build AGS tools on macOS
+        if: matrix.platform == 'darwin'
+        run: |
+          mkdir -p bin/${{ matrix.platform }}/x64
+          cd ../ags
+          brew install cmake
+          cmake . -DAGS_BUILD_TOOLS=ON
+          cmake --build . --target crmpak
+          cp build/Tools/crmpak ../ags-mcp-server/bin/${{ matrix.platform }}/x64/
+      
+      - name: Build AGS tools on Windows
+        if: matrix.platform == 'win32'
+        run: |
+          mkdir -p bin/${{ matrix.platform }}/x64
+          cd ../ags
+          cmake . -DAGS_BUILD_TOOLS=ON
+          cmake --build . --target crmpak
+          cp build/Tools/crmpak.exe ../ags-mcp-server/bin/${{ matrix.platform }}/x64/
+      
+      - name: Upload binaries
+        uses: actions/upload-artifact@v3
+        with:
+          name: binaries-${{ matrix.platform }}
+          path: bin/${{ matrix.platform }}
+  
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build TypeScript
+        run: npm run build
+      
+      - name: Download all binaries
+        uses: actions/download-artifact@v3
+        with:
+          path: bin
+      
+      - name: Reorganize binaries
+        run: |
+          mkdir -p bin/win32/x64
+          mkdir -p bin/darwin/x64
+          mkdir -p bin/linux/x64
+          
+          # Move binaries to their correct locations
+          mv bin/binaries-win32/x64/* bin/win32/x64/
+          mv bin/binaries-darwin/x64/* bin/darwin/x64/
+          mv bin/binaries-linux/x64/* bin/linux/x64/
+          
+          # Clean up
+          rm -rf bin/binaries-*
+      
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

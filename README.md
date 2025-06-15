@@ -6,23 +6,23 @@ Enable AI-powered adventure game development by providing programmatic access to
 
 ## 🚀 Quick Start
 
-### Option 1: Test Locally (Fastest)
+### Run with npx (Recommended)
 ```bash
-git clone <repository>
-cd ags-mcp-server
-npm install
-npm run demo  # Shows all functionality working
+# Run directly without installation
+npx ags-mcp-server
 ```
 
-### Option 2: Docker Deployment (Recommended)
+### Development Setup
 ```bash
-# 1. Build AGS tools first
-cd .. && cmake . -DAGS_BUILD_TOOLS=ON && cmake --build . --target crmpak
-
-# 2. Build and run MCP server
+# Clone the repository
+git clone <repository>
 cd ags-mcp-server
-./build-simple.sh
-docker run -p 3000:3000 ags-mcp-server:simple
+
+# Install dependencies
+npm install
+
+# Run the demo
+npm run demo  # Shows all functionality working
 ```
 
 ## 📋 Features
@@ -31,60 +31,41 @@ docker run -p 3000:3000 ags-mcp-server:simple
 - **📦 Block Management**: List, export, and import specific blocks within room files
 - **🎯 Hotspot Tools**: Read and modify hotspot interactions programmatically
 - **🔗 Script Integration**: Wire hotspot events to script functions automatically
-- **🐳 Docker Ready**: Multiple deployment options with containerization
+- **💻 Cross-Platform**: Works on Windows, macOS, and Linux
 - **🤖 AI Integration**: Compatible with Claude Desktop, Cline, and other MCP clients
 
 ## 🛠️ Installation & Deployment
 
+### Using npx (Recommended)
+```bash
+# Run directly without installation
+npx ags-mcp-server
+```
+
 ### Local Development
 ```bash
+# Clone the repository
+git clone <repository>
+cd ags-mcp-server
+
+# Install dependencies
 npm install
+
+# Build the project
 npm run build
+
+# Run the server
 npm start  # Starts MCP server on stdio
-```
-
-### Docker Deployment Options
-
-**🎯 Recommended: Simple Build**
-```bash
-# Build with embedded tools (if AGS tools are pre-built)
-./build-simple.sh
-docker run -p 3000:3000 ags-mcp-server:simple
-```
-
-**🔧 With Volume Mount (Most Reliable)**
-```bash
-# Mount host AGS tools into container
-docker run -p 3000:3000 \
-  -v $(pwd)/../build/Tools:/usr/local/bin \
-  ags-mcp-server:simple
-```
-
-**🎼 Docker Compose**
-```bash
-docker-compose -f docker-compose.simple.yml up
-```
-
-**📦 Pre-built Image (Recommended)**
-```bash
-# Pull and run from GitHub Container Registry
-docker pull ghcr.io/wilson-lilburne/ags-mcp-server:latest
-docker run -p 3000:3000 ghcr.io/wilson-lilburne/ags-mcp-server:latest
 ```
 
 ### 🪟 Windows Setup
 
-**Prerequisites**: Docker Desktop for Windows
+**Prerequisites**: Node.js 18+ installed
 
-**Pull and Test**:
+**Run with npx**:
 ```powershell
-docker pull ghcr.io/wilson-lilburne/ags-mcp-server:latest
-docker run --rm ghcr.io/wilson-lilburne/ags-mcp-server:latest crmpak --help
-```
-
-**Run MCP Server**:
-```powershell
-docker run -d --name ags-mcp-server -p 3000:3000 ghcr.io/wilson-lilburne/ags-mcp-server:latest
+# Run directly without installation
+npx ags-mcp-server
 ```
 
 **Claude Desktop Config** (`%APPDATA%\Claude\claude_desktop_config.json`):
@@ -92,8 +73,52 @@ docker run -d --name ags-mcp-server -p 3000:3000 ghcr.io/wilson-lilburne/ags-mcp
 {
   "mcpServers": {
     "ags-server": {
-      "command": "docker",
-      "args": ["exec", "-i", "ags-mcp-server", "node", "dist/index.js"]
+      "command": "npx",
+      "args": ["ags-mcp-server"]
+    }
+  }
+}
+```
+
+### 🍎 macOS Setup
+
+**Prerequisites**: Node.js 18+ installed
+
+**Run with npx**:
+```bash
+# Run directly without installation
+npx ags-mcp-server
+```
+
+**Claude Desktop Config** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "ags-server": {
+      "command": "npx",
+      "args": ["ags-mcp-server"]
+    }
+  }
+}
+```
+
+### 🐧 Linux Setup
+
+**Prerequisites**: Node.js 18+ installed
+
+**Run with npx**:
+```bash
+# Run directly without installation
+npx ags-mcp-server
+```
+
+**Claude Desktop Config** (`~/.config/Claude/claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "ags-server": {
+      "command": "npx",
+      "args": ["ags-mcp-server"]
     }
   }
 }
@@ -129,13 +154,13 @@ docker run -d --name ags-mcp-server -p 3000:3000 ghcr.io/wilson-lilburne/ags-mcp
 ## 🤖 AI Integration
 
 ### Claude Desktop Integration
-Add to your `claude_desktop_config.json`:
+Add to your `claude_desktop_config.json` (location depends on your OS):
 ```json
 {
   "mcpServers": {
     "ags-server": {
-      "command": "node",
-      "args": ["/path/to/ags-mcp-server/dist/index.js"]
+      "command": "npx",
+      "args": ["ags-mcp-server"]
     }
   }
 }
@@ -146,7 +171,8 @@ Configure in Cline settings:
 ```json
 {
   "ags-mcp-server": {
-    "path": "/path/to/ags-mcp-server/dist/index.js",
+    "command": "npx",
+    "args": ["ags-mcp-server"],
     "type": "stdio"
   }
 }
@@ -204,7 +230,7 @@ The MCP server works with AGS's binary .crm (compiled room) format:
 ✅ **Phase 2**: MCP server architecture  
 ✅ **Phase 3**: .crm file reading/parsing implementation  
 ✅ **Phase 4**: Hotspot manipulation tools  
-✅ **Phase 5**: Docker containerization  
+✅ **Phase 5**: Cross-platform support (Windows, macOS, Linux)  
 ✅ **Phase 6**: Proof-of-concept demo  
 ✅ **Phase 7**: Documentation and examples  
 
@@ -214,33 +240,42 @@ The MCP server works with AGS's binary .crm (compiled room) format:
 
 ### Run Demo
 ```bash
+# If you've cloned the repository
 npm run demo  # Shows all MCP tools with mock data
-```
 
-### Test Docker Build
-```bash
-./build-simple.sh
-docker run --rm ags-mcp-server:simple crmpak --help
+# Or using npx
+npx ags-mcp-server demo
 ```
 
 ### Validate MCP Protocol
 ```bash
-echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | npm start
+# Test the JSON-RPC interface
+echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | npx ags-mcp-server
+```
+
+### Verify Installation
+```bash
+# Check if the MCP server is working correctly
+npx ags-mcp-server --version
 ```
 
 ## 🔧 Development
 
-### Build Scripts
-- **`build-simple.sh`** ⭐ - Recommended: copies pre-built tools
-- **`build-complete.sh`** - Experimental: builds everything from source  
-- **`build-minimal.sh`** - Minimal dependencies
-- **`build.sh`** - Legacy script
+### Build Process
+```bash
+# Install dependencies
+npm install
+
+# Build TypeScript code
+npm run build
+
+# Run tests
+npm test
+```
 
 ### Prerequisites
 - Node.js 18+
-- AGS source code (for building tools)
-- Docker (for containerized deployment)
-- CMake (for building AGS tools)
+- npm 7+
 
 ### Architecture
 ```
@@ -250,10 +285,9 @@ AI Request → MCP Server → AGS Tools (crmpak) → Binary .crm Files → Struc
 ## 🛡️ Security & Production
 
 - **File Access**: Controlled read/write to .crm files only
-- **Docker Isolation**: Containerized for security
 - **Input Validation**: All tool parameters validated
-- **Non-root User**: Container runs as unprivileged user
-- **Health Checks**: Built-in container health monitoring
+- **Platform Support**: Works on Windows, macOS, and Linux
+- **Error Handling**: Graceful error handling and reporting
 
 ## 📈 Performance
 
@@ -266,27 +300,39 @@ AI Request → MCP Server → AGS Tools (crmpak) → Binary .crm Files → Struc
 
 ### Common Issues
 
-**crmpak not found:**
+**npx command not found:**
 ```bash
-# Ensure AGS tools are built
-cd .. && cmake . -DAGS_BUILD_TOOLS=ON && cmake --build . --target crmpak
+# Make sure Node.js is installed
+node --version
+
+# If needed, install or update npm
+npm install -g npm
 ```
 
-**Docker architecture errors:**
+**Permission issues with npx:**
 ```bash
-# Use volume mount approach instead of embedded tools
-docker run -v /path/to/tools:/usr/local/bin ags-mcp-server:simple
+# On Linux/macOS, you might need to use sudo
+sudo npx ags-mcp-server
+
+# Or fix npm permissions
+https://docs.npmjs.com/resolving-eacces-permissions-errors-when-installing-packages-globally
 ```
 
 **MCP connection failed:**
 ```bash
 # Check stdio configuration and tool responses
-echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | npm start
+echo '{"jsonrpc":"2.0","method":"tools/list","id":1}' | npx ags-mcp-server
+```
+
+**File access errors:**
+```bash
+# Make sure you're using absolute file paths or paths relative to your current directory
+# Not paths relative to the MCP server installation
 ```
 
 ### Debug Mode
 ```bash
-DEBUG=ags-mcp:* npm start
+DEBUG=ags-mcp:* npx ags-mcp-server
 ```
 
 ## 🤝 Contributing

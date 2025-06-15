@@ -1,0 +1,45 @@
+# Source files
+src/
+tsconfig.json
+
+# Development files
+.github/
+.gitignore
+*.sh
+Dockerfile*
+docker-compose*.yml
+
+# Test files
+*test.js
+*test.ts
+
+# Debug files
+debug_*.js
+debug_*.ts
+
+# Documentation
+docs/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Build artifacts
+coverage/
+.nyc_output/
+
+# Include compiled JavaScript files
+!dist/
+
+# Include bin directory with platform-specific binaries
+!bin/
