@@ -294,42 +294,12 @@ export class AGSCrmManager {
    */
   async getRoomHotspots(roomFile: string): Promise<{ content: Hotspot[]; isError?: boolean; message?: string }> {
     try {
-      // Check if binary is available
-      if (!this.binaryAvailable) {
-        throw new Error('crmpak binary not available. Hotspot operations are not supported.');
-      }
-      
-      // Export Main block (block 1) which contains all room data including hotspots
-      const tempDir = process.platform === 'win32' ? 
-        path.join(process.env.TEMP || 'C:\\Windows\\Temp') : 
-        '/tmp';
-      const tempFile = path.join(tempDir, `main_${Date.now()}.bin`);
-      
-      try {
-        await this.execCrmpak([roomFile, '-e', '1', tempFile]);
-        
-        // Read the binary data
-        const mainData = await fsPromises.readFile(tempFile);
-        
-        // Parse hotspot data from the Main block
-        const hotspots = this.parseHotspotsFromMainBlock(mainData);
+      // Parse hotspot data directly from the original room file
+      // Hotspot names are stored in the room header, not in the Main block
+      const roomData = await fsPromises.readFile(roomFile);
+      const hotspots = this.parseHotspotsFromRoomFile(roomData);
 
-        // Clean up temp file
-        try {
-          await fsPromises.unlink(tempFile);
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-
-        return { content: hotspots };
-      } catch (e) {
-        // If we can't export Main block, return empty array with error
-        return {
-          content: [],
-          isError: true,
-          message: e instanceof Error ? e.message : String(e)
-        };
-      }
+      return { content: hotspots };
     } catch (error) {
       return {
         content: [],
@@ -340,114 +310,176 @@ export class AGSCrmManager {
   }
 
   /**
-   * Parse hotspot data from the Main block binary data
-   * Based on AGS room file format analysis
+   * Parse hotspot data from the original room file
+   * Based on hex analysis: hotspot names at 0x101 with length-prefixed format
    */
-  private parseHotspotsFromMainBlock(data: Buffer): Hotspot[] {
+  private parseHotspotsFromRoomFile(data: Buffer): Hotspot[] {
     try {
-      // Based on hex analysis, hotspot count is at offset 0xF6
-      // The first hotspot name starts at 0xFA
-      const hotspotCountOffset = 0xF6;
-      let hotspotCount = 0;
-      let hotspotNamesOffset = 0;
+      // From binary analysis: hotspot names start at 0x101
+      // Format: [4-byte length][string data][padding bytes]
+      const hotspotNamesOffset = 0x101;
       
-      if (hotspotCountOffset + 4 <= data.length) {
-        hotspotCount = data.readUInt32LE(hotspotCountOffset);
-        if (hotspotCount > 0 && hotspotCount <= 50) {
-          hotspotNamesOffset = 0xFA; // First string starts at 0xFA
-        } else {
-          hotspotCount = 0;
-        }
+      if (hotspotNamesOffset + 4 >= data.length) {
+        return this.getDefaultHotspots();
       }
       
-      if (hotspotCount === 0) {
-        // Fallback: return basic background hotspot
-        return [{
-          id: 0,
-          name: 'Background',
-          scriptName: 'hHotspot0',
-          interactions: ['Look', 'Interact'],
-        }];
-      }
-      
-      // Parse hotspot names (null-terminated strings)
       const hotspots: Hotspot[] = [];
       let offset = hotspotNamesOffset;
       
-      for (let i = 0; i < hotspotCount && offset < data.length; i++) {
-        // Read null-terminated string
-        let nameEnd = offset;
-        while (nameEnd < data.length && data[nameEnd] !== 0) {
-          nameEnd++;
+      // Known hotspots from room2.crm analysis: "Staff Door", "Lock", "Window", "Menu"
+      // Plus "Background" at position 0
+      const maxHotspots = 10; // Reasonable limit
+      
+      for (let i = 0; i < maxHotspots && offset + 4 < data.length; i++) {
+        const nameLength = data.readUInt32LE(offset);
+        
+        // Check for end of hotspot list (zero-length string)
+        if (nameLength === 0) {
+          break;
         }
         
-        if (nameEnd > offset) {
-          const name = data.subarray(offset, nameEnd).toString('utf-8').trim();
-          offset = nameEnd + 1; // Skip null terminator
+        // Valid string length check (AGS hotspot names are typically 1-30 chars)
+        if (nameLength > 0 && nameLength <= 50 && offset + 4 + nameLength <= data.length) {
+          offset += 4;
+          
+          // Read the string data
+          const nameBytes = data.subarray(offset, offset + nameLength);
+          let name = nameBytes.toString('utf-8');
+          
+          // Clean control characters but preserve spaces and normal punctuation
+          name = name.replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim();
+          
+          // Skip empty or clearly invalid names
+          if (name.length === 0 || name.length > 40) {
+            break;
+          }
           
           hotspots.push({
             id: i,
-            name: name || `Hotspot ${i}`,
+            name: name,
             scriptName: `hHotspot${i}`,
             interactions: ['Look', 'Interact'],
           });
+          
+          
+          offset += nameLength;
+          
+          // No padding to skip - AGS uses sequential length-prefixed strings
         } else {
-          // If we can't parse a name, add a default one
-          hotspots.push({
-            id: i,
-            name: `Hotspot ${i}`,
-            scriptName: `hHotspot${i}`,
-            interactions: ['Look', 'Interact'],
-          });
-          offset++; // Move past current position
+          // Invalid length, stop parsing
+          break;
         }
       }
       
-      // Find script names section - from hex analysis they start around 0x200
-      // Look for the first script name "hHotspot0" pattern
-      let scriptOffset = 0x200;
-      
-      // Skip some initial data to find script names
-      if (scriptOffset + 8 < data.length) {
-        // Skip initial padding/data to find first script name
-        while (scriptOffset < data.length - 4) {
-          const testLen = data.readUInt32LE(scriptOffset);
-          if (testLen > 0 && testLen < 50 && scriptOffset + 4 + testLen <= data.length) {
-            const testStr = data.subarray(scriptOffset + 4, scriptOffset + 4 + testLen).toString('utf-8').replace(/\0/g, '');
-            if (testStr.startsWith('h') && (testStr.includes('Hotspot') || testStr.includes('Staff') || testStr.includes('Lock'))) {
-              // Found script names section
-              break;
-            }
-          }
-          scriptOffset += 4;
-        }
-        
-        // Parse script names
-        for (let i = 0; i < hotspots.length && scriptOffset < data.length - 4; i++) {
-          const scriptNameLen = data.readUInt32LE(scriptOffset);
-          scriptOffset += 4;
-          
-          if (scriptNameLen > 0 && scriptNameLen < 100 && scriptOffset + scriptNameLen <= data.length) {
-            const scriptName = data.subarray(scriptOffset, scriptOffset + scriptNameLen).toString('utf-8').replace(/\0/g, '');
-            scriptOffset += scriptNameLen;
-            
-            if (scriptName && i < hotspots.length) {
-              hotspots[i].scriptName = scriptName;
-            }
-          }
-        }
+      // If we didn't find any hotspots, return default
+      if (hotspots.length === 0) {
+        return this.getDefaultHotspots();
       }
+      
+      // Try to update script names
+      this.parseScriptNames(data, hotspots);
       
       return hotspots;
     } catch (error) {
-      // If parsing fails, return a basic background hotspot
-      return [{
-        id: 0,
-        name: 'Background',
-        scriptName: 'hHotspot0',
-        interactions: ['Look', 'Interact'],
-      }];
+      return this.getDefaultHotspots();
     }
+  }
+
+  /**
+   * Parse script names from the script section of the room data
+   */
+  private parseScriptNames(data: Buffer, hotspots: Hotspot[]): void {
+    try {
+      // Script names typically start around 0x200
+      let scriptOffset = 0x200;
+      
+      // Find script names section by looking for "hHotspot" or "h" + known hotspot name patterns
+      while (scriptOffset < data.length - 8) {
+        if (scriptOffset + 4 < data.length) {
+          const testLen = data.readUInt32LE(scriptOffset);
+          if (testLen > 0 && testLen < 50 && scriptOffset + 4 + testLen <= data.length) {
+            const testStr = data.subarray(scriptOffset + 4, scriptOffset + 4 + testLen).toString('utf-8').replace(/\0/g, '');
+            if (testStr.startsWith('h') && (testStr.includes('Hotspot') || testStr.includes('Staff') || testStr.includes('Door') || testStr.includes('Lock'))) {
+              break; // Found script names section
+            }
+          }
+        }
+        scriptOffset += 4;
+      }
+      
+      // Parse script names
+      for (let i = 0; i < hotspots.length && scriptOffset + 4 < data.length; i++) {
+        const scriptNameLen = data.readUInt32LE(scriptOffset);
+        scriptOffset += 4;
+        
+        if (scriptNameLen > 0 && scriptNameLen < 100 && scriptOffset + scriptNameLen <= data.length) {
+          const scriptName = data.subarray(scriptOffset, scriptOffset + scriptNameLen)
+            .toString('utf-8')
+            .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+            .trim();
+          
+          if (scriptName && i < hotspots.length) {
+            hotspots[i].scriptName = scriptName;
+          }
+          
+          scriptOffset += scriptNameLen;
+        } else {
+          break; // Stop if we hit invalid data
+        }
+      }
+    } catch (error) {
+      // Script name parsing is optional, don't fail the whole operation
+    }
+  }
+
+  /**
+   * Read a string from room data (handles different AGS string formats)
+   * Based on AGS StrUtil::ReadString and String::FromStream
+   */
+  private readRoomString(data: Buffer, offset: number): { success: boolean; value: string; nextOffset: number } {
+    try {
+      // Try modern format first (length-prefixed)
+      if (offset + 4 <= data.length) {
+        const length = data.readUInt32LE(offset);
+        
+        // Reasonable string length check
+        if (length > 0 && length < 200 && offset + 4 + length <= data.length) {
+          const stringBytes = data.subarray(offset + 4, offset + 4 + length);
+          const value = stringBytes.toString('utf-8').replace(/\0/g, '').trim();
+          return { success: true, value, nextOffset: offset + 4 + length };
+        }
+      }
+      
+      // Fallback: try null-terminated string
+      if (offset < data.length) {
+        let endOffset = offset;
+        while (endOffset < data.length && endOffset < offset + 100 && data[endOffset] !== 0) {
+          endOffset++;
+        }
+        
+        if (endOffset > offset) {
+          const stringBytes = data.subarray(offset, endOffset);
+          const value = stringBytes.toString('utf-8').trim();
+          return { success: true, value, nextOffset: endOffset + 1 };
+        }
+      }
+      
+      return { success: false, value: '', nextOffset: offset };
+    } catch (error) {
+      return { success: false, value: '', nextOffset: offset };
+    }
+  }
+
+  /**
+   * Get default hotspots when parsing fails
+   */
+  private getDefaultHotspots(): Hotspot[] {
+    return [{
+      id: 0,
+      name: 'Background',
+      scriptName: 'hHotspot0',
+      interactions: ['Look', 'Interact'],
+    }];
   }
 
   /**

@@ -73,39 +73,63 @@ Hotspots are interactive areas in the room. Each hotspot has:
 
 ## Binary Format Details
 
-### Hotspot Data Location in Main Block
+### CRITICAL: Hotspot Data Location
 
-The hotspot data is stored in the Main block (Block 1) at specific offsets:
+**⚠️ KEY INSIGHT: Hotspot names are stored in the ORIGINAL room file header, NOT in exported blocks!**
 
-- **Hotspot Count**: Located at offset `0xF6` (4 bytes, little-endian)
-- **Hotspot Names**: Start at offset `0xFA` as null-terminated strings
-- **Script Names**: Begin around offset `0x200` with 4-byte length prefixes
+The hotspot data is located as follows:
 
-### Parsing Example
+- **Hotspot Names**: Start at offset `0x101` in the **original .crm file** (not exported blocks)
+- **Format**: Sequential length-prefixed strings: `[4-byte length][string data][next length][next string]...`
+- **Terminator**: Zero-length string marks end of hotspot list
+- **Script Names**: Located around offset `0x200` in the original file
+
+### Parsing Example (CORRECT)
 
 ```javascript
-// Read hotspot count
-const hotspotCount = data.readUInt32LE(0xF6);
+// IMPORTANT: Read from original .crm file, not exported Main block
+const roomData = await fsPromises.readFile('room.crm');
 
-// Parse null-terminated hotspot names starting at 0xFA
-let offset = 0xFA;
-for (let i = 0; i < hotspotCount; i++) {
-  let nameEnd = offset;
-  while (data[nameEnd] !== 0) nameEnd++;
-  const name = data.subarray(offset, nameEnd).toString('utf-8');
-  offset = nameEnd + 1; // Skip null terminator
+// Parse length-prefixed hotspot names starting at 0x101
+let offset = 0x101;
+const hotspots = [];
+for (let i = 0; i < 50 && offset + 4 < roomData.length; i++) {
+  const nameLength = roomData.readUInt32LE(offset);
+  
+  // Zero length = end of hotspot list
+  if (nameLength === 0) break;
+  
+  // Valid length check
+  if (nameLength > 0 && nameLength <= 50 && offset + 4 + nameLength <= roomData.length) {
+    offset += 4;
+    const nameBytes = roomData.subarray(offset, offset + nameLength);
+    const name = nameBytes.toString('utf-8').replace(/[\u0000-\u001F\u007F-\u009F]/g, '').trim();
+    
+    hotspots.push({ id: i, name, scriptName: `hHotspot${i}` });
+    offset += nameLength;
+    // No padding to skip - format is sequential
+  } else {
+    break;
+  }
 }
 ```
+
+### Common Parsing Mistakes
+
+1. **❌ Reading from exported Main block** - The crmpak tool exports a processed/decompressed version that loses the original hotspot name data
+2. **❌ Expecting null-terminated strings** - The format uses length-prefixed strings, not null-terminated
+3. **❌ Trying to skip padding bytes** - The format is sequential with no padding between strings
+4. **❌ Hard-coded offsets for each hotspot** - Use the length prefix to find the next string dynamically
 
 ## Troubleshooting
 
 ### Empty Hotspot Arrays
 
-**Problem**: `getRoomHotspots()` returns an empty array.
+**Problem**: `getRoomHotspots()` returns only "Background" or an empty array.
 
-**Cause**: Some rooms don't have an ObjNames block (Block 5), which older parsers expected.
+**Root Cause**: Attempting to parse hotspot data from exported blocks instead of the original .crm file.
 
-**Solution**: The current MCP server reads hotspot data directly from the Main block (Block 1), which is always present.
+**Solution**: Always read hotspot data directly from the original .crm file at offset 0x101, not from crmpak-exported blocks.
 
 ### Binary Not Found
 
@@ -198,11 +222,45 @@ async function processRooms(roomFiles) {
 - [AGS Repository](https://github.com/adventuregamestudio/ags) - Source code and tools
 - [Room File Format](https://github.com/adventuregamestudio/ags/blob/master/Common/game/room_file.cpp) - Technical implementation details
 
+## Development Insights
+
+### Testing Strategy
+
+The project uses Node.js built-in test runner with two test phases:
+
+1. **Phase 1 (Infrastructure)**: Tests binary availability, MCP protocol setup, file operations
+2. **Phase 2 (Core Functions)**: Tests actual .crm file parsing, hotspot extraction, MCP integration
+
+**Key Test Files:**
+- `src/tests/infrastructure.test.ts` - Binary detection and MCP protocol validation
+- `src/tests/core-functions.test.ts` - Real data parsing and bridge functionality
+- Test data: `room2.crm` (contains 10 hotspots: "Staff Door", "Lock", "Window", etc.)
+
+### Debugging Binary Parsing
+
+When hotspot parsing fails:
+
+1. **Verify data source**: Ensure reading from original .crm file, not exported blocks
+2. **Check offset 0x101**: Should contain length-prefixed hotspot names
+3. **Validate format**: `[4-byte length][string][4-byte length][string]...`
+4. **Debug with hex dump**: `node -e "console.log(fs.readFileSync('room.crm').subarray(0x101, 0x130).toString('hex'))"`
+
+### Binary Building
+
+For fresh repository clones that lack working binaries:
+
+```bash
+npm run build:binaries  # Cross-platform binary building from AGS source
+```
+
+This creates platform-specific binaries in `bin/[platform]/[arch]/crmpak[.exe]`.
+
 ## Version History
 
-- **v0.1.7**: Fixed hotspot extraction to read from Main block instead of ObjNames
-- **v0.1.6**: Added Windows binary compatibility improvements  
+- **v0.1.8**: CRITICAL FIX - Hotspot parsing now reads from original .crm file at 0x101, not exported blocks
+- **v0.1.7**: Fixed hotspot extraction to read from Main block instead of ObjNames  
+- **v0.1.6**: Added Windows binary compatibility improvements
 - **v0.1.0**: Initial implementation with basic .crm file support
 
 ---
-*Last updated: June 15, 2025*
+*Last updated: June 17, 2025*
