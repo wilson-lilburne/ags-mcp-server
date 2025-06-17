@@ -11,7 +11,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test": "npm run build && node dist/test.js",
+    "test": "npm run build && node --test dist/tests/**/*.test.js",
+    "test:watch": "npm run build && node --test --watch dist/tests/**/*.test.js",
+    "test:infrastructure": "npm run build && node --test dist/tests/infrastructure.test.js",
     "demo": "npm run build && node dist/demo.js"
   },
   "dependencies": {

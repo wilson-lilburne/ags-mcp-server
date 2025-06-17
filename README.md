@@ -2,7 +2,22 @@
 
 **Model Context Protocol (MCP) server for Adventure Game Studio (AGS) compiled room (.crm) file manipulation.**
 
-Enable AI-powered adventure game development by providing programmatic access to AGS room files through the MCP protocol.
+**Bridge tool that gives AI access to binary AGS room data for complete AI-powered adventure game development.**
+
+## 🎯 Project Vision
+
+AI tools excel at reading and writing AGS script files (text), but cannot directly access compiled room (.crm) files. This creates a gap where developers must manually connect AI-generated scripts to room elements through the AGS editor.
+
+The AGS MCP Server bridges this gap by providing programmatic access to binary .crm data, enabling AI to:
+- Connect script functions to hotspots, objects, and interactive elements
+- Read room layouts and interactive areas for context
+- Complete the full development workflow without manual AGS editor intervention
+
+**Core Workflow:**
+1. AI analyzes game requirements and room context
+2. AI writes script functions (text files) 
+3. AI uses MCP server to connect functions to room elements in binary .crm files
+4. Complete game ready for testing - no manual hookup required
 
 ## 🚀 Quick Start
 
@@ -224,17 +239,73 @@ The MCP server works with AGS's binary .crm (compiled room) format:
 - **Script Linking**: Functions named `hotspot{id}_{event}` (e.g., `hotspot1_Look`)
 - **Runtime Resolution**: Dynamic function resolution from compiled scripts
 
+## 🗺️ Development Roadmap
+
+### 🎯 Mission: Complete AI-AGS Bridge
+Enable AI tools to fully manipulate AGS room files without manual AGS editor intervention.
+
+### ✅ Phase 1: Foundation (COMPLETE)
+- [x] AGS tools compilation (crmpak, crm2ash)
+- [x] MCP server architecture  
+- [x] .crm file reading/parsing implementation
+- [x] Basic hotspot manipulation tools
+- [x] Cross-platform support (Windows, macOS, Linux)
+- [x] Proof-of-concept demo and documentation
+
+### 🚧 Phase 2: Enhanced Hotspot Operations (IN PROGRESS)
+**Goal: Complete hotspot script-to-binary connection capabilities**
+- [ ] Advanced hotspot property modification
+- [ ] Hotspot interaction event management
+- [ ] Walk-to coordinate updates
+- [ ] Hotspot validation and error handling
+- [ ] Batch hotspot operations
+
+### 📋 Phase 3: Room Objects Integration (PLANNED)
+**Goal: Connect AI scripts to room objects (items, props, inventory)**
+- [ ] Room object enumeration and properties
+- [ ] Object script function connections
+- [ ] Object positioning and state management
+- [ ] Interactive object behavior setup
+- [ ] Object visibility and animation controls
+
+### 🚶 Phase 4: Walkable Areas & Boundaries (PLANNED)
+**Goal: AI control over character movement and depth sorting**
+- [ ] Walkable area reading and modification
+- [ ] Walk-behind area management
+- [ ] Character pathing validation
+- [ ] Boundary collision setup
+- [ ] Area transition scripting
+
+### 🎯 Phase 5: Regions & Special Areas (PLANNED)
+**Goal: AI setup of trigger zones and special game areas**
+- [ ] Region definition and properties
+- [ ] Region event handler connections
+- [ ] Trigger zone scripting
+- [ ] Special area effects setup
+- [ ] Multi-region interaction management
+
+### 👤 Phase 6: Character Spawn Points (PLANNED)
+**Goal: AI placement and management of character starting positions**
+- [ ] Character spawn point definition
+- [ ] Starting position management
+- [ ] Character state initialization
+- [ ] Multi-character room setup
+- [ ] Character interaction scripting
+
+### 🔮 Phase 7: Advanced Features (FUTURE)
+- [ ] Other AGS file format support (.ags, .chr, etc.)
+- [ ] AGS project-wide script integration
+- [ ] Automated testing and validation
+
+### 🎯 Current Focus: Phase 2
+**Next Implementation Priority:**
+1. Enhanced hotspot property modification
+2. Robust script-to-hotspot connection system
+3. Comprehensive error handling and validation
+
 ## 📊 Project Status
 
-✅ **Phase 1**: AGS tools compilation (crmpak, crm2ash)  
-✅ **Phase 2**: MCP server architecture  
-✅ **Phase 3**: .crm file reading/parsing implementation  
-✅ **Phase 4**: Hotspot manipulation tools  
-✅ **Phase 5**: Cross-platform support (Windows, macOS, Linux)  
-✅ **Phase 6**: Proof-of-concept demo  
-✅ **Phase 7**: Documentation and examples  
-
-**🎯 Status: Production Ready** - The server is fully functional for AI-powered AGS development.
+**🎯 Status: Foundation Complete, Core Bridge Functionality In Development**
 
 ## 🧪 Testing & Validation
 
