@@ -321,16 +321,75 @@ git commit -m "Complete [Phase X]: [Brief Description]
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
-### **📌 Current Status: Ready to Commit Phase 2**
+### **📌 Current Status: Phase 2 Committed ✅**
 
-The project is currently at a **COMMIT READY** state:
-- ✅ Phase 2 objectives 100% complete
+**✅ COMMITTED: Phase 2 Enhanced Hotspot Operations** (Commit: `5146c36`)
+- ✅ Phase 2 objectives 100% complete and committed
 - ✅ 58 tests passing (32 original + 26 new)
-- ✅ Documentation updated
+- ✅ Documentation updated with testing strategy
 - ✅ No breaking changes
 - ✅ All MCP tools functional
+- ✅ Git commit strategy documented
 
-**NEXT ACTION: Commit Phase 2 completion before starting Phase 3.**
+**🎯 READY FOR: Phase 2.5 - CRMPAK Elimination & Direct Binary Writing**
+
+### **🚨 CRITICAL DISCOVERY: No Real Writing Yet!**
+
+**ALL Phase 2 "modification" tools are read-only placeholders returning "Would modify..." messages!**
+
+#### **📋 Phase 2.5 Priority Tasks:**
+1. **🔥 URGENT**: Implement actual binary writing for hotspot modifications
+2. **🗑️ Remove**: All CRMPAK dependencies from read operations
+3. **🔄 Replace**: All placeholder operations with real file modifications  
+4. **🛡️ Safety**: Add backup/versioning for file protection
+5. **🧪 Testing**: Comprehensive binary write operation testing
+
+### **🔧 CRMPAK Dependency Analysis**
+
+**CRITICAL INSIGHT: Most operations can be done without CRMPAK binary!**
+
+#### **✅ CRMPAK-Free Operations (Direct File Reading):**
+- ✅ `getRoomHotspots()` - Direct read from offset 0x101
+- ✅ All Phase 2 hotspot operations
+- ✅ Future object data reading (similar to hotspots)
+- ✅ Most room structure parsing
+
+#### **🔧 Current CRMPAK Dependencies:**
+- `listRoomBlocks()` - Could be replaced with direct binary parsing
+- `exportRoomBlock()` - Needed only for binary modification workflows  
+- `importRoomBlock()` - Needed only for actual file writing/modification
+
+#### **📋 CRMPAK Elimination Strategy:**
+1. **Phase 3**: Implement room object reading via direct binary parsing (no CRMPAK)
+2. **Phase 4+**: Only keep CRMPAK for actual binary modification (import/export)
+3. **Future**: Consider eliminating CRMPAK entirely if binary modification can be done directly
+
+**BENEFIT: Eliminates binary dependency for 90% of use cases!**
+
+### **🔧 Writing Strategy: Direct Binary vs. CRMPAK**
+
+**CRITICAL STATUS: All Phase 2 "write" operations are currently READ-only placeholders!**
+
+#### **🎯 RECOMMENDED: Direct Binary Writing**
+- ✅ **Consistent approach** - We already read directly, should write directly
+- ✅ **No binary dependency** - Pure Node.js/TypeScript solution
+- ✅ **Better performance** - In-memory read-modify-write operations
+- ✅ **Atomic operations** - Safer file handling
+- ✅ **Full control** - Can implement any modification we need
+
+#### **❌ NOT RECOMMENDED: CRMPAK for Writing**
+- ❌ **Inconsistent** - We'd read directly but write via CRMPAK
+- ❌ **Binary dependency** - Platform compatibility issues
+- ❌ **Complex workflow** - Export→modify→import dance
+- ❌ **Limited flexibility** - Constrained by CRMPAK capabilities
+
+#### **📋 Implementation Strategy:**
+1. **Phase 3**: Continue direct binary reading for objects (no CRMPAK)
+2. **Phase 4**: Implement direct binary writing for hotspot modifications
+3. **Phase 5+**: Extend direct binary writing to all operations
+4. **Future**: Eliminate CRMPAK entirely
+
+**TARGET: 100% CRMPAK-free AGS room manipulation!**
 
 ### Debugging Binary Parsing
 

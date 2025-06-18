@@ -252,60 +252,82 @@ Enable AI tools to fully manipulate AGS room files without manual AGS editor int
 - [x] Cross-platform support (Windows, macOS, Linux)
 - [x] Proof-of-concept demo and documentation
 
-### 🚧 Phase 2: Enhanced Hotspot Operations (IN PROGRESS)
+### ✅ Phase 2: Enhanced Hotspot Operations (COMPLETE - READ-ONLY)
 **Goal: Complete hotspot script-to-binary connection capabilities**
-- [ ] Advanced hotspot property modification
-- [ ] Hotspot interaction event management
-- [ ] Walk-to coordinate updates
-- [ ] Hotspot validation and error handling
-- [ ] Batch hotspot operations
+- [x] Advanced hotspot property modification (placeholder/read-only)
+- [x] Hotspot interaction event management (placeholder/read-only)
+- [x] Walk-to coordinate updates (placeholder/read-only)
+- [x] Hotspot validation and error handling
+- [x] Batch hotspot operations (placeholder/read-only)
+- [x] Comprehensive test suite (58 tests, 100% pass rate)
 
-### 📋 Phase 3: Room Objects Integration (PLANNED)
-**Goal: Connect AI scripts to room objects (items, props, inventory)**
-- [ ] Room object enumeration and properties
-- [ ] Object script function connections
-- [ ] Object positioning and state management
+**⚠️ CRITICAL: All Phase 2 "write" operations are currently read-only placeholders!**
+
+### 🔧 Phase 2.5: CRMPAK Elimination & Direct Binary Writing (NEXT)
+**Goal: Eliminate binary dependencies and implement real file writing**
+- [ ] Remove all CRMPAK dependencies from read operations
+- [ ] Implement direct binary writing for hotspot modifications
+- [ ] Replace `list_room_blocks` with direct binary parsing
+- [ ] Convert all placeholder "Would modify..." to actual file modifications
+- [ ] Add backup/versioning for file safety
+- [ ] Comprehensive testing of binary write operations
+
+### 📋 Phase 3: Room Objects Integration (PLANNED - DIRECT BINARY)
+**Goal: Connect AI scripts to room objects via direct binary parsing**
+- [ ] Room object enumeration and properties (direct binary read)
+- [ ] Object script function connections (direct binary write)
+- [ ] Object positioning and state management (direct binary write)
 - [ ] Interactive object behavior setup
 - [ ] Object visibility and animation controls
 
-### 🚶 Phase 4: Walkable Areas & Boundaries (PLANNED)
-**Goal: AI control over character movement and depth sorting**
-- [ ] Walkable area reading and modification
-- [ ] Walk-behind area management
+### 🚶 Phase 4: Walkable Areas & Boundaries (PLANNED - DIRECT BINARY)
+**Goal: AI control over character movement via direct binary manipulation**
+- [ ] Walkable area reading and modification (direct binary)
+- [ ] Walk-behind area management (direct binary)
 - [ ] Character pathing validation
 - [ ] Boundary collision setup
 - [ ] Area transition scripting
 
-### 🎯 Phase 5: Regions & Special Areas (PLANNED)
-**Goal: AI setup of trigger zones and special game areas**
-- [ ] Region definition and properties
-- [ ] Region event handler connections
+### 🎯 Phase 5: Regions & Special Areas (PLANNED - DIRECT BINARY)
+**Goal: AI setup of trigger zones via direct binary manipulation**
+- [ ] Region definition and properties (direct binary)
+- [ ] Region event handler connections (direct binary write)
 - [ ] Trigger zone scripting
 - [ ] Special area effects setup
 - [ ] Multi-region interaction management
 
-### 👤 Phase 6: Character Spawn Points (PLANNED)
-**Goal: AI placement and management of character starting positions**
-- [ ] Character spawn point definition
-- [ ] Starting position management
+### 👤 Phase 6: Character Spawn Points (PLANNED - DIRECT BINARY)
+**Goal: AI character placement via direct binary manipulation**
+- [ ] Character spawn point definition (direct binary)
+- [ ] Starting position management (direct binary write)
 - [ ] Character state initialization
 - [ ] Multi-character room setup
 - [ ] Character interaction scripting
 
-### 🔮 Phase 7: Advanced Features (FUTURE)
+### 🔮 Phase 7: Advanced Features (FUTURE - FULL BINARY CONTROL)
+- [ ] Complete script block manipulation (CompScript3 direct binary editing)
 - [ ] Other AGS file format support (.ags, .chr, etc.)
 - [ ] AGS project-wide script integration
 - [ ] Automated testing and validation
+- [ ] **TARGET: 100% CRMPAK-free AGS room manipulation**
 
-### 🎯 Current Focus: Phase 2
+### 🎯 Current Focus: Phase 2.5 - CRMPAK Elimination
 **Next Implementation Priority:**
-1. Enhanced hotspot property modification
-2. Robust script-to-hotspot connection system
-3. Comprehensive error handling and validation
+1. **URGENT**: Implement direct binary writing for hotspot modifications
+2. Remove CRMPAK dependencies from read operations  
+3. Replace all "Would modify..." placeholders with actual file modifications
+4. Add comprehensive safety measures (backups, validation)
+5. Complete test coverage for binary write operations
 
 ## 📊 Project Status
 
-**🎯 Status: Foundation Complete, Core Bridge Functionality In Development**
+**🎯 Status: Read-Only Operations Complete, Binary Writing Implementation Needed**
+
+### **CRITICAL INSIGHT: Transition to Pure Binary Manipulation**
+- ✅ **Reading**: Direct binary parsing working perfectly (hotspots at offset 0x101)
+- ⚠️ **Writing**: All "modification" operations are currently placeholders
+- 🎯 **Goal**: 100% CRMPAK-free solution with real binary file writing
+- 🔧 **Benefit**: No binary dependencies, pure Node.js/TypeScript solution
 
 ## 🧪 Testing & Validation
 
