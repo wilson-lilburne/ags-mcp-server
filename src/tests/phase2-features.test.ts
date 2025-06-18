@@ -146,10 +146,11 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
       const result = await manager.addHotspotInteraction(room2Path, 0, 'Use', 'staffDoor_Use');
       
       assert.ok(!result.isError, `Should not error: ${result.message}`);
-      assert.ok(result.content.includes('Would add interaction'), 'Should indicate interaction addition');
+      assert.ok(result.content.includes('Added interaction metadata'), 'Should indicate interaction metadata addition');
       // Note: hotspot name may have changed due to previous modifications in the test file
       assert.ok(result.content.includes('Use'), 'Should include event type');
       assert.ok(result.content.includes('staffDoor_Use'), 'Should include function name');
+      assert.ok(result.content.includes('script compilation not yet implemented'), 'Should acknowledge limitation');
     });
 
     test('should validate event types', async () => {
