@@ -1,6 +1,6 @@
 {
   "name": "ags-mcp-server",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "MCP Server for AGS .crm file manipulation",
   "main": "dist/index.js",
   "type": "module",
