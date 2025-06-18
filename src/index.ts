@@ -177,6 +177,158 @@ class AGSMcpServer {
               required: ['roomFile', 'hotspotId', 'event', 'functionName'],
             },
           },
+          {
+            name: 'modify_hotspot_properties',
+            description: 'Modify hotspot properties (name, script name, walk-to coordinates, etc.)',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                roomFile: {
+                  type: 'string',
+                  description: 'Path to the .crm file',
+                },
+                modifications: {
+                  type: 'array',
+                  description: 'Array of hotspot modifications',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'number', description: 'Hotspot ID (0-49)' },
+                      name: { type: 'string', description: 'New hotspot name' },
+                      scriptName: { type: 'string', description: 'New script name' },
+                      walkTo: { 
+                        type: 'object',
+                        properties: {
+                          x: { type: 'number' },
+                          y: { type: 'number' }
+                        },
+                        description: 'Walk-to coordinates'
+                      },
+                      enabled: { type: 'boolean', description: 'Enable/disable hotspot' },
+                      description: { type: 'string', description: 'Hotspot description' },
+                      properties: { type: 'object', description: 'Custom properties' }
+                    },
+                    required: ['id']
+                  }
+                },
+                outputFile: {
+                  type: 'string',
+                  description: 'Output .crm file path (optional)',
+                },
+              },
+              required: ['roomFile', 'modifications'],
+            },
+          },
+          {
+            name: 'update_hotspot_walkto_coordinates',
+            description: 'Update walk-to coordinates for multiple hotspots',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                roomFile: {
+                  type: 'string',
+                  description: 'Path to the .crm file',
+                },
+                coordinates: {
+                  type: 'array',
+                  description: 'Array of hotspot coordinate updates',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'number', description: 'Hotspot ID (0-49)' },
+                      x: { type: 'number', description: 'X coordinate' },
+                      y: { type: 'number', description: 'Y coordinate' }
+                    },
+                    required: ['id', 'x', 'y']
+                  }
+                },
+                outputFile: {
+                  type: 'string',
+                  description: 'Output .crm file path (optional)',
+                },
+              },
+              required: ['roomFile', 'coordinates'],
+            },
+          },
+          {
+            name: 'batch_modify_hotspots',
+            description: 'Batch modify multiple hotspots in a single operation',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                roomFile: {
+                  type: 'string',
+                  description: 'Path to the .crm file',
+                },
+                operations: {
+                  type: 'array',
+                  description: 'Array of operations to perform',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      type: { 
+                        type: 'string',
+                        enum: ['modify', 'addInteraction', 'updateWalkTo'],
+                        description: 'Operation type'
+                      },
+                      hotspotId: { type: 'number', description: 'Hotspot ID (0-49)' },
+                      data: { type: 'object', description: 'Operation-specific data' }
+                    },
+                    required: ['type', 'hotspotId', 'data']
+                  }
+                },
+                outputFile: {
+                  type: 'string',
+                  description: 'Output .crm file path (optional)',
+                },
+              },
+              required: ['roomFile', 'operations'],
+            },
+          },
+          {
+            name: 'remove_hotspot_interaction',
+            description: 'Remove an interaction event handler from a hotspot',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                roomFile: {
+                  type: 'string',
+                  description: 'Path to the .crm file',
+                },
+                hotspotId: {
+                  type: 'number',
+                  description: 'Hotspot ID (0-based index)',
+                },
+                event: {
+                  type: 'string',
+                  description: 'Event type to remove (Look, Interact, UseInv, etc.)',
+                },
+                outputFile: {
+                  type: 'string',
+                  description: 'Output .crm file path (optional)',
+                },
+              },
+              required: ['roomFile', 'hotspotId', 'event'],
+            },
+          },
+          {
+            name: 'list_hotspot_interactions',
+            description: 'List all interactions for a specific hotspot',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                roomFile: {
+                  type: 'string',
+                  description: 'Path to the .crm file',
+                },
+                hotspotId: {
+                  type: 'number',
+                  description: 'Hotspot ID (0-based index)',
+                },
+              },
+              required: ['roomFile', 'hotspotId'],
+            },
+          },
         ],
       };
     });
@@ -230,6 +382,46 @@ class AGSMcpServer {
               args.event as string,
               args.functionName as string,
               args.outputFile as string,
+            );
+            break;
+
+          case 'modify_hotspot_properties':
+            result = await this.crmManager.modifyHotspotProperties(
+              args.roomFile as string,
+              args.modifications as any[],
+              args.outputFile as string,
+            );
+            break;
+
+          case 'update_hotspot_walkto_coordinates':
+            result = await this.crmManager.updateHotspotWalkToCoordinates(
+              args.roomFile as string,
+              args.coordinates as any[],
+              args.outputFile as string,
+            );
+            break;
+
+          case 'batch_modify_hotspots':
+            result = await this.crmManager.batchModifyHotspots(
+              args.roomFile as string,
+              args.operations as any[],
+              args.outputFile as string,
+            );
+            break;
+
+          case 'remove_hotspot_interaction':
+            result = await this.crmManager.removeHotspotInteraction(
+              args.roomFile as string,
+              args.hotspotId as number,
+              args.event as string,
+              args.outputFile as string,
+            );
+            break;
+
+          case 'list_hotspot_interactions':
+            result = await this.crmManager.listHotspotInteractions(
+              args.roomFile as string,
+              args.hotspotId as number,
             );
             break;
 

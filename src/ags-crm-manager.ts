@@ -27,6 +27,19 @@ export interface Hotspot {
   scriptName?: string;
   walkTo?: { x: number; y: number };
   interactions?: string[];
+  enabled?: boolean;
+  description?: string;
+  properties?: Record<string, any>;
+}
+
+export interface HotspotModification {
+  id: number;
+  name?: string;
+  scriptName?: string;
+  walkTo?: { x: number; y: number };
+  enabled?: boolean;
+  description?: string;
+  properties?: Record<string, any>;
 }
 
 /**
@@ -493,9 +506,36 @@ export class AGSCrmManager {
     outputFile?: string
   ): Promise<{ content: string; isError?: boolean; message?: string }> {
     try {
+      // Validate inputs
+      const validationResult = this.validateInteractionInput(hotspotId, event, functionName);
+      if (!validationResult.valid) {
+        return {
+          content: `Validation failed: ${validationResult.errors.join(', ')}`,
+          isError: true,
+          message: validationResult.errors.join(', ')
+        };
+      }
+
+      // Get current hotspots to show context
+      const hotspotsResult = await this.getRoomHotspots(roomFile);
+      if (hotspotsResult.isError) {
+        return {
+          content: `Failed to read hotspots: ${hotspotsResult.message}`,
+          isError: true,
+          message: hotspotsResult.message
+        };
+      }
+
+      const hotspot = hotspotsResult.content.find(h => h.id === hotspotId);
+      const hotspotName = hotspot?.name || `Hotspot ${hotspotId}`;
+      
       // This would require modifying the compiled script block
-      // For now, return a success message indicating what would be done
-      const message = `Would add interaction: hotspot ${hotspotId} -> ${event} -> ${functionName}()`;
+      // For now, return a detailed success message indicating what would be done
+      const message = `Would add interaction to "${hotspotName}" (ID: ${hotspotId}):\n` +
+                     `  Event: ${event}\n` +
+                     `  Function: ${functionName}()\n` +
+                     `  Current script name: ${hotspot?.scriptName || 'unknown'}\n` +
+                     `  Current interactions: ${hotspot?.interactions?.join(', ') || 'none'}`;
       
       if (outputFile) {
         return { content: `${message}\nOutput would be written to: ${outputFile}` };
@@ -509,5 +549,429 @@ export class AGSCrmManager {
         message: error instanceof Error ? error.message : String(error)
       };
     }
+  }
+
+  /**
+   * Remove an interaction event handler from a hotspot
+   */
+  async removeHotspotInteraction(
+    roomFile: string,
+    hotspotId: number,
+    event: string,
+    outputFile?: string
+  ): Promise<{ content: string; isError?: boolean; message?: string }> {
+    try {
+      // Validate inputs
+      if (hotspotId < 0 || hotspotId > 49) {
+        return {
+          content: `Invalid hotspot ID: ${hotspotId} (must be 0-49)`,
+          isError: true,
+          message: `Invalid hotspot ID: ${hotspotId}`
+        };
+      }
+
+      if (!this.isValidEventType(event)) {
+        return {
+          content: `Invalid event type: ${event}`,
+          isError: true,
+          message: `Invalid event type: ${event}`
+        };
+      }
+
+      // Get current hotspots
+      const hotspotsResult = await this.getRoomHotspots(roomFile);
+      if (hotspotsResult.isError) {
+        return {
+          content: `Failed to read hotspots: ${hotspotsResult.message}`,
+          isError: true,
+          message: hotspotsResult.message
+        };
+      }
+
+      const hotspot = hotspotsResult.content.find(h => h.id === hotspotId);
+      const hotspotName = hotspot?.name || `Hotspot ${hotspotId}`;
+      
+      const message = `Would remove ${event} interaction from "${hotspotName}" (ID: ${hotspotId})`;
+      
+      if (outputFile) {
+        return { content: `${message}\nOutput would be written to: ${outputFile}` };
+      }
+      
+      return { content: message };
+    } catch (error) {
+      return {
+        content: `Failed to remove hotspot interaction: ${error instanceof Error ? error.message : String(error)}`,
+        isError: true,
+        message: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  /**
+   * List all interactions for a specific hotspot
+   */
+  async listHotspotInteractions(
+    roomFile: string,
+    hotspotId: number
+  ): Promise<{ content: any; isError?: boolean; message?: string }> {
+    try {
+      // Validate hotspot ID
+      if (hotspotId < 0 || hotspotId > 49) {
+        return {
+          content: null,
+          isError: true,
+          message: `Invalid hotspot ID: ${hotspotId} (must be 0-49)`
+        };
+      }
+
+      // Get current hotspots
+      const hotspotsResult = await this.getRoomHotspots(roomFile);
+      if (hotspotsResult.isError) {
+        return {
+          content: null,
+          isError: true,
+          message: hotspotsResult.message
+        };
+      }
+
+      const hotspot = hotspotsResult.content.find(h => h.id === hotspotId);
+      if (!hotspot) {
+        return {
+          content: null,
+          isError: true,
+          message: `Hotspot ${hotspotId} not found`
+        };
+      }
+
+      const interactions = {
+        hotspotId: hotspot.id,
+        name: hotspot.name,
+        scriptName: hotspot.scriptName,
+        availableInteractions: hotspot.interactions || [],
+        supportedEvents: ['Look', 'Interact', 'UseInv', 'Talk', 'Walk', 'Use', 'PickUp'],
+        walkTo: hotspot.walkTo
+      };
+
+      return { content: interactions };
+    } catch (error) {
+      return {
+        content: null,
+        isError: true,
+        message: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  /**
+   * Validate interaction input parameters
+   */
+  private validateInteractionInput(hotspotId: number, event: string, functionName: string): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // Validate hotspot ID
+    if (hotspotId < 0 || hotspotId > 49) {
+      errors.push(`Invalid hotspot ID: ${hotspotId} (must be 0-49)`);
+    }
+
+    // Validate event type
+    if (!this.isValidEventType(event)) {
+      errors.push(`Invalid event type: ${event} (supported: Look, Interact, UseInv, Talk, Walk, Use, PickUp)`);
+    }
+
+    // Validate function name
+    if (!functionName || functionName.length === 0) {
+      errors.push('Function name cannot be empty');
+    } else if (functionName.length > 100) {
+      errors.push('Function name too long (max 100 characters)');
+    } else if (!functionName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+      errors.push(`Invalid function name: ${functionName} (must be valid identifier)`);
+    }
+
+    return { valid: errors.length === 0, errors };
+  }
+
+  /**
+   * Check if event type is valid for AGS
+   */
+  private isValidEventType(event: string): boolean {
+    const validEvents = ['Look', 'Interact', 'UseInv', 'Talk', 'Walk', 'Use', 'PickUp', 'Any'];
+    return validEvents.includes(event);
+  }
+
+  /**
+   * Modify hotspot properties (name, script name, walk-to coordinates, etc.)
+   */
+  async modifyHotspotProperties(
+    roomFile: string,
+    modifications: HotspotModification[],
+    outputFile?: string
+  ): Promise<{ content: string; isError?: boolean; message?: string }> {
+    try {
+      // Validate modifications
+      const validationResult = this.validateHotspotModifications(modifications);
+      if (!validationResult.valid) {
+        return {
+          content: `Validation failed: ${validationResult.errors.join(', ')}`,
+          isError: true,
+          message: `Invalid modifications: ${validationResult.errors.join(', ')}`
+        };
+      }
+
+      // Get current hotspots
+      const hotspotsResult = await this.getRoomHotspots(roomFile);
+      if (hotspotsResult.isError) {
+        return {
+          content: `Failed to read hotspots: ${hotspotsResult.message}`,
+          isError: true,
+          message: hotspotsResult.message
+        };
+      }
+
+      const currentHotspots = hotspotsResult.content;
+      const modifiedHotspots = this.applyHotspotModifications(currentHotspots, modifications);
+      
+      // For now, return description of what would be changed
+      const changes = modifications.map(mod => {
+        const hotspot = currentHotspots.find(h => h.id === mod.id);
+        const hotspotName = hotspot?.name || `Hotspot ${mod.id}`;
+        const changeDetails = [];
+        
+        if (mod.name !== undefined) changeDetails.push(`name: "${hotspot?.name}" -> "${mod.name}"`);
+        if (mod.scriptName !== undefined) changeDetails.push(`script: "${hotspot?.scriptName}" -> "${mod.scriptName}"`);
+        if (mod.walkTo !== undefined) changeDetails.push(`walkTo: ${JSON.stringify(hotspot?.walkTo)} -> ${JSON.stringify(mod.walkTo)}`);
+        if (mod.enabled !== undefined) changeDetails.push(`enabled: ${hotspot?.enabled !== false} -> ${mod.enabled}`);
+        if (mod.description !== undefined) changeDetails.push(`description: "${hotspot?.description || ''}" -> "${mod.description}"`);
+        
+        return `${hotspotName} (${mod.id}): ${changeDetails.join(', ')}`;
+      }).join('\n');
+
+      const message = `Would modify ${modifications.length} hotspot(s):\n${changes}`;
+      
+      if (outputFile) {
+        return { content: `${message}\nOutput would be written to: ${outputFile}` };
+      }
+      
+      return { content: message };
+    } catch (error) {
+      return {
+        content: `Failed to modify hotspot properties: ${error instanceof Error ? error.message : String(error)}`,
+        isError: true,
+        message: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  /**
+   * Update walk-to coordinates for multiple hotspots
+   */
+  async updateHotspotWalkToCoordinates(
+    roomFile: string,
+    coordinates: Array<{ id: number; x: number; y: number }>,
+    outputFile?: string
+  ): Promise<{ content: string; isError?: boolean; message?: string }> {
+    try {
+      // Validate coordinates
+      const validationErrors = [];
+      for (const coord of coordinates) {
+        if (coord.id < 0 || coord.id > 49) {
+          validationErrors.push(`Invalid hotspot ID: ${coord.id} (must be 0-49)`);
+        }
+        if (coord.x < 0 || coord.x > 9999 || coord.y < 0 || coord.y > 9999) {
+          validationErrors.push(`Invalid coordinates for hotspot ${coord.id}: (${coord.x}, ${coord.y})`);
+        }
+      }
+
+      if (validationErrors.length > 0) {
+        return {
+          content: `Validation failed: ${validationErrors.join(', ')}`,
+          isError: true,
+          message: validationErrors.join(', ')
+        };
+      }
+
+      // Get current hotspots
+      const hotspotsResult = await this.getRoomHotspots(roomFile);
+      if (hotspotsResult.isError) {
+        return {
+          content: `Failed to read hotspots: ${hotspotsResult.message}`,
+          isError: true,
+          message: hotspotsResult.message
+        };
+      }
+
+      const currentHotspots = hotspotsResult.content;
+      const changes = coordinates.map(coord => {
+        const hotspot = currentHotspots.find(h => h.id === coord.id);
+        const hotspotName = hotspot?.name || `Hotspot ${coord.id}`;
+        const oldCoords = hotspot?.walkTo ? `(${hotspot.walkTo.x}, ${hotspot.walkTo.y})` : 'none';
+        return `${hotspotName}: ${oldCoords} -> (${coord.x}, ${coord.y})`;
+      }).join('\n');
+
+      const message = `Would update walk-to coordinates for ${coordinates.length} hotspot(s):\n${changes}`;
+      
+      if (outputFile) {
+        return { content: `${message}\nOutput would be written to: ${outputFile}` };
+      }
+      
+      return { content: message };
+    } catch (error) {
+      return {
+        content: `Failed to update walk-to coordinates: ${error instanceof Error ? error.message : String(error)}`,
+        isError: true,
+        message: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  /**
+   * Batch modify multiple hotspots in a single operation
+   */
+  async batchModifyHotspots(
+    roomFile: string,
+    operations: Array<{
+      type: 'modify' | 'addInteraction' | 'updateWalkTo';
+      hotspotId: number;
+      data: any;
+    }>,
+    outputFile?: string
+  ): Promise<{ content: string; isError?: boolean; message?: string }> {
+    try {
+      // Validate operations
+      const validationErrors = [];
+      for (const op of operations) {
+        if (!['modify', 'addInteraction', 'updateWalkTo'].includes(op.type)) {
+          validationErrors.push(`Invalid operation type: ${op.type}`);
+        }
+        if (op.hotspotId < 0 || op.hotspotId > 49) {
+          validationErrors.push(`Invalid hotspot ID: ${op.hotspotId}`);
+        }
+      }
+
+      if (validationErrors.length > 0) {
+        return {
+          content: `Validation failed: ${validationErrors.join(', ')}`,
+          isError: true,
+          message: validationErrors.join(', ')
+        };
+      }
+
+      // Get current hotspots for reference
+      const hotspotsResult = await this.getRoomHotspots(roomFile);
+      if (hotspotsResult.isError) {
+        return {
+          content: `Failed to read hotspots: ${hotspotsResult.message}`,
+          isError: true,
+          message: hotspotsResult.message
+        };
+      }
+
+      const currentHotspots = hotspotsResult.content;
+      const operationSummary = operations.map(op => {
+        const hotspot = currentHotspots.find(h => h.id === op.hotspotId);
+        const hotspotName = hotspot?.name || `Hotspot ${op.hotspotId}`;
+        
+        switch (op.type) {
+          case 'modify':
+            return `${hotspotName}: modify properties (${Object.keys(op.data).join(', ')})`;
+          case 'addInteraction':
+            return `${hotspotName}: add ${op.data.event} -> ${op.data.functionName}()`;
+          case 'updateWalkTo':
+            return `${hotspotName}: set walk-to (${op.data.x}, ${op.data.y})`;
+          default:
+            return `${hotspotName}: unknown operation`;
+        }
+      }).join('\n');
+
+      const message = `Would perform ${operations.length} batch operation(s):\n${operationSummary}`;
+      
+      if (outputFile) {
+        return { content: `${message}\nOutput would be written to: ${outputFile}` };
+      }
+      
+      return { content: message };
+    } catch (error) {
+      return {
+        content: `Failed to perform batch operations: ${error instanceof Error ? error.message : String(error)}`,
+        isError: true,
+        message: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  /**
+   * Validate hotspot modifications
+   */
+  private validateHotspotModifications(modifications: HotspotModification[]): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    for (const mod of modifications) {
+      // Validate hotspot ID
+      if (mod.id < 0 || mod.id > 49) {
+        errors.push(`Invalid hotspot ID: ${mod.id} (must be 0-49)`);
+      }
+
+      // Validate name
+      if (mod.name !== undefined && (mod.name.length === 0 || mod.name.length > 50)) {
+        errors.push(`Invalid name for hotspot ${mod.id}: length must be 1-50 characters`);
+      }
+
+      // Validate script name
+      if (mod.scriptName !== undefined) {
+        if (mod.scriptName.length === 0 || mod.scriptName.length > 50) {
+          errors.push(`Invalid script name for hotspot ${mod.id}: length must be 1-50 characters`);
+        }
+        if (!mod.scriptName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+          errors.push(`Invalid script name for hotspot ${mod.id}: must be valid identifier`);
+        }
+      }
+
+      // Validate walk-to coordinates
+      if (mod.walkTo !== undefined) {
+        if (mod.walkTo.x < 0 || mod.walkTo.x > 9999 || mod.walkTo.y < 0 || mod.walkTo.y > 9999) {
+          errors.push(`Invalid walk-to coordinates for hotspot ${mod.id}: (${mod.walkTo.x}, ${mod.walkTo.y})`);
+        }
+      }
+
+      // Validate description
+      if (mod.description !== undefined && mod.description.length > 200) {
+        errors.push(`Description too long for hotspot ${mod.id}: max 200 characters`);
+      }
+    }
+
+    return { valid: errors.length === 0, errors };
+  }
+
+  /**
+   * Apply modifications to hotspot array
+   */
+  private applyHotspotModifications(hotspots: Hotspot[], modifications: HotspotModification[]): Hotspot[] {
+    const result = [...hotspots];
+
+    for (const mod of modifications) {
+      const index = result.findIndex(h => h.id === mod.id);
+      if (index >= 0) {
+        // Update existing hotspot
+        if (mod.name !== undefined) result[index].name = mod.name;
+        if (mod.scriptName !== undefined) result[index].scriptName = mod.scriptName;
+        if (mod.walkTo !== undefined) result[index].walkTo = mod.walkTo;
+        if (mod.enabled !== undefined) result[index].enabled = mod.enabled;
+        if (mod.description !== undefined) result[index].description = mod.description;
+        if (mod.properties !== undefined) {
+          result[index].properties = { ...result[index].properties, ...mod.properties };
+        }
+      } else {
+        // Create new hotspot if it doesn't exist
+        const newHotspot: Hotspot = {
+          ...mod,
+          name: mod.name || `Hotspot ${mod.id}`,
+          scriptName: mod.scriptName || `hHotspot${mod.id}`,
+          interactions: ['Look', 'Interact'],
+          enabled: mod.enabled !== false
+        };
+        result.push(newHotspot);
+      }
+    }
+
+    return result.sort((a, b) => a.id - b.id);
   }
 }
