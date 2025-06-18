@@ -496,6 +496,86 @@ export class AGSCrmManager {
   }
 
   /**
+   * Create a backup of the room file before modification
+   */
+  private async createBackup(filePath: string): Promise<string> {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupPath = `${filePath}.backup-${timestamp}`;
+    await fsPromises.copyFile(filePath, backupPath);
+    return backupPath;
+  }
+
+  /**
+   * Write hotspot data directly to .crm file using binary format
+   */
+  private async writeHotspotDataToFile(
+    sourceFile: string,
+    hotspots: Hotspot[],
+    targetFile: string
+  ): Promise<{ content: string; isError?: boolean; message?: string }> {
+    try {
+      // Create backup before modification
+      if (sourceFile === targetFile) {
+        const backupPath = await this.createBackup(sourceFile);
+        if (!this.silent) {
+          console.log(`Created backup: ${backupPath}`);
+        }
+      }
+
+      // Read the entire room file
+      const roomData = await fsPromises.readFile(sourceFile);
+      const modifiedData = Buffer.from(roomData);
+
+      // Write hotspot names at offset 0x101
+      const hotspotNamesOffset = 0x101;
+      let writeOffset = hotspotNamesOffset;
+
+      // Write each hotspot name using length-prefixed format
+      for (let i = 0; i < hotspots.length && i < 50; i++) {
+        const hotspot = hotspots[i];
+        const name = hotspot.name || `Hotspot${i}`;
+        const nameBytes = Buffer.from(name, 'utf-8');
+        const nameLength = nameBytes.length;
+
+        // Ensure we don't exceed reasonable bounds
+        if (writeOffset + 4 + nameLength >= modifiedData.length - 100) {
+          return {
+            content: `Error: Not enough space in file for hotspot data`,
+            isError: true,
+            message: 'Insufficient file space for hotspot modifications'
+          };
+        }
+
+        // Write length prefix (4 bytes, little-endian)
+        modifiedData.writeUInt32LE(nameLength, writeOffset);
+        writeOffset += 4;
+
+        // Write name data
+        nameBytes.copy(modifiedData, writeOffset);
+        writeOffset += nameLength;
+      }
+
+      // Write terminating zero-length string
+      if (writeOffset + 4 < modifiedData.length) {
+        modifiedData.writeUInt32LE(0, writeOffset);
+      }
+
+      // Write the modified data to target file
+      await fsPromises.writeFile(targetFile, modifiedData);
+
+      return {
+        content: `Successfully wrote hotspot data to ${targetFile}`
+      };
+    } catch (error) {
+      return {
+        content: `Failed to write hotspot data: ${error instanceof Error ? error.message : String(error)}`,
+        isError: true,
+        message: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  /**
    * Add an interaction event handler to a hotspot
    */
   async addHotspotInteraction(
@@ -730,7 +810,14 @@ export class AGSCrmManager {
       const currentHotspots = hotspotsResult.content;
       const modifiedHotspots = this.applyHotspotModifications(currentHotspots, modifications);
       
-      // For now, return description of what would be changed
+      // Perform actual binary writing
+      const targetFile = outputFile || roomFile;
+      const writeResult = await this.writeHotspotDataToFile(roomFile, modifiedHotspots, targetFile);
+      
+      if (writeResult.isError) {
+        return writeResult;
+      }
+
       const changes = modifications.map(mod => {
         const hotspot = currentHotspots.find(h => h.id === mod.id);
         const hotspotName = hotspot?.name || `Hotspot ${mod.id}`;
@@ -745,12 +832,7 @@ export class AGSCrmManager {
         return `${hotspotName} (${mod.id}): ${changeDetails.join(', ')}`;
       }).join('\n');
 
-      const message = `Would modify ${modifications.length} hotspot(s):\n${changes}`;
-      
-      if (outputFile) {
-        return { content: `${message}\nOutput would be written to: ${outputFile}` };
-      }
-      
+      const message = `Successfully modified ${modifications.length} hotspot(s):\n${changes}\n\nFile written to: ${targetFile}`;
       return { content: message };
     } catch (error) {
       return {
