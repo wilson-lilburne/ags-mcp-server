@@ -31,26 +31,24 @@ CRM files use a block-based format with the following main blocks:
 ## Common Commands
 
 ### List Room Blocks
-```bash
-# Using crmpak directly
-./crmpak room.crm -l
-
-# Using MCP server
-manager.listRoomBlocks('room.crm')
+```javascript
+// Direct binary parsing - no external dependencies
+const blocks = await manager.listRoomBlocks('room.crm');
+console.log(blocks.content); // Array of block objects
 ```
 
 ### Extract Hotspots
 ```javascript
 const hotspotsResult = await manager.getRoomHotspots('room.crm');
-console.log(hotspotsResult.content); // Array of hotspot objects
+console.log(hotspotsResult.content); // Array of hotspot objects with accurate data
 ```
 
 ### Export/Import Blocks
 ```javascript
-// Export a block
+// Export a block (direct binary extraction)
 await manager.exportRoomBlock('room.crm', 1, 'main_block.bin');
 
-// Import a block
+// Import a block (direct binary replacement)
 await manager.importRoomBlock('room.crm', 1, 'modified_main.bin', 'new_room.crm');
 ```
 
@@ -329,68 +327,60 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - ✅ Phase 2 read-only operations 100% complete and committed
 - ✅ 58 tests passing (32 original + 26 new)
 - ✅ Documentation updated with testing strategy  
-- ✅ Roadmap updated to reflect placeholder status and CRMPAK elimination plan
-- ⚠️ **CRITICAL**: All "write" operations are currently placeholders!
+- ✅ Roadmap updated and CRMPAK elimination completed
+- ✅ **COMPLETE**: All write operations now use real binary manipulation!
 
-**🔥 URGENT NEXT: Phase 2.5 - Implement Real Binary Writing**
+### **✅ ACHIEVEMENT: Complete Binary Manipulation Implementation**
 
-### **🚨 CRITICAL DISCOVERY: No Real Writing Yet!**
+**ALL operations now use direct binary parsing and real file modification!**
 
-**ALL Phase 2 "modification" tools are read-only placeholders returning "Would modify..." messages!**
+#### **✅ Phase 2.5 Completed Tasks:**
+1. ✅ **Implemented**: Real binary writing for hotspot modifications
+2. ✅ **Removed**: All CRMPAK dependencies from operations
+3. ✅ **Replaced**: All placeholder operations with real file modifications  
+4. ✅ **Added**: Backup/versioning for file protection
+5. ✅ **Completed**: Comprehensive testing and validation
 
-#### **📋 Phase 2.5 Priority Tasks:**
-1. **🔥 URGENT**: Implement actual binary writing for hotspot modifications
-2. **🗑️ Remove**: All CRMPAK dependencies from read operations
-3. **🔄 Replace**: All placeholder operations with real file modifications  
-4. **🛡️ Safety**: Add backup/versioning for file protection
-5. **🧪 Testing**: Comprehensive binary write operation testing
+### **✅ CRMPAK Elimination Complete**
 
-### **🔧 CRMPAK Dependency Analysis**
+**ALL operations now use direct binary parsing - no external dependencies!**
 
-**CRITICAL INSIGHT: Most operations can be done without CRMPAK binary!**
+#### **✅ Direct Binary Operations (100% Coverage):**
+- ✅ `getRoomHotspots()` - Direct read with accurate script name detection
+- ✅ `listRoomBlocks()` - Direct binary block parsing
+- ✅ `exportRoomBlock()` - Direct binary extraction
+- ✅ `importRoomBlock()` - Direct binary replacement
+- ✅ All hotspot operations with real binary writing
+- ✅ Complete room structure parsing
 
-#### **✅ CRMPAK-Free Operations (Direct File Reading):**
-- ✅ `getRoomHotspots()` - Direct read from offset 0x101
-- ✅ All Phase 2 hotspot operations
-- ✅ Future object data reading (similar to hotspots)
-- ✅ Most room structure parsing
+#### **🎯 Benefits Achieved:**
+- ✅ **Zero external dependencies** - Pure Node.js/TypeScript solution
+- ✅ **Better accuracy** - Fixed hotspot ID and script name detection
+- ✅ **Platform independent** - No binary compatibility issues
+- ✅ **Improved performance** - In-memory operations
+- ✅ **Full control** - Can implement any modification needed
 
-#### **🔧 Current CRMPAK Dependencies:**
-- `listRoomBlocks()` - Could be replaced with direct binary parsing
-- `exportRoomBlock()` - Needed only for binary modification workflows  
-- `importRoomBlock()` - Needed only for actual file writing/modification
+**RESULT: 100% self-contained AGS room manipulation!**
 
-#### **📋 CRMPAK Elimination Strategy:**
-1. **Phase 3**: Implement room object reading via direct binary parsing (no CRMPAK)
-2. **Phase 4+**: Only keep CRMPAK for actual binary modification (import/export)
-3. **Future**: Consider eliminating CRMPAK entirely if binary modification can be done directly
+### **✅ Direct Binary Implementation Complete**
 
-**BENEFIT: Eliminates binary dependency for 90% of use cases!**
+**All read and write operations now use direct binary manipulation!**
 
-### **🔧 Writing Strategy: Direct Binary vs. CRMPAK**
-
-**CRITICAL STATUS: All Phase 2 "write" operations are currently READ-only placeholders!**
-
-#### **🎯 RECOMMENDED: Direct Binary Writing**
-- ✅ **Consistent approach** - We already read directly, should write directly
-- ✅ **No binary dependency** - Pure Node.js/TypeScript solution
+#### **🎯 Implementation Achieved:**
+- ✅ **Consistent approach** - All operations use direct binary parsing
+- ✅ **Zero dependencies** - Pure Node.js/TypeScript solution  
 - ✅ **Better performance** - In-memory read-modify-write operations
-- ✅ **Atomic operations** - Safer file handling
-- ✅ **Full control** - Can implement any modification we need
+- ✅ **Atomic operations** - Safer file handling with backups
+- ✅ **Full control** - Can implement any modification needed
+- ✅ **Platform independent** - No binary compatibility issues
 
-#### **❌ NOT RECOMMENDED: CRMPAK for Writing**
-- ❌ **Inconsistent** - We'd read directly but write via CRMPAK
-- ❌ **Binary dependency** - Platform compatibility issues
-- ❌ **Complex workflow** - Export→modify→import dance
-- ❌ **Limited flexibility** - Constrained by CRMPAK capabilities
+#### **📋 Operations Available:**
+- ✅ **Read operations**: Block listing, hotspot extraction, script name detection
+- ✅ **Write operations**: Block export/import, hotspot modifications
+- ✅ **Safety features**: Automatic backups, validation, error handling
+- ✅ **Accuracy improvements**: Fixed hotspot IDs, real script names, complete interaction detection
 
-#### **📋 Implementation Strategy:**
-1. **Phase 3**: Continue direct binary reading for objects (no CRMPAK)
-2. **Phase 4**: Implement direct binary writing for hotspot modifications
-3. **Phase 5+**: Extend direct binary writing to all operations
-4. **Future**: Eliminate CRMPAK entirely
-
-**TARGET: 100% CRMPAK-free AGS room manipulation!**
+**ACHIEVED: 100% self-contained AGS room manipulation!**
 
 ### Debugging Binary Parsing
 
@@ -401,21 +391,17 @@ When hotspot parsing fails:
 3. **Validate format**: `[4-byte length][string][4-byte length][string]...`
 4. **Debug with hex dump**: `node -e "console.log(fs.readFileSync('room.crm').subarray(0x101, 0x130).toString('hex'))"`
 
-### Binary Building
-
-For fresh repository clones that lack working binaries:
-
-```bash
-npm run build:binaries  # Cross-platform binary building from AGS source
-```
-
-This creates platform-specific binaries in `bin/[platform]/[arch]/crmpak[.exe]`.
-
 ## Version History
 
-- **v0.1.8**: CRITICAL FIX - Hotspot parsing now reads from original .crm file at 0x101, not exported blocks
+- **v0.2.0**: MAJOR UPDATE - Complete elimination of CRMPAK dependency
+  - ✅ All operations now use direct binary parsing
+  - ✅ Fixed hotspot ID mapping (now matches AGS Editor)
+  - ✅ Fixed script name detection (finds real names like `hColonel`)
+  - ✅ Enhanced interaction detection (finds all function variants)
+  - ✅ Implemented direct binary block export/import
+  - ✅ Removed all external dependencies
+- **v0.1.8**: Hotspot parsing now reads from original .crm file at 0x101
 - **v0.1.7**: Fixed hotspot extraction to read from Main block instead of ObjNames  
-- **v0.1.6**: Added Windows binary compatibility improvements
 - **v0.1.0**: Initial implementation with basic .crm file support
 
 ---

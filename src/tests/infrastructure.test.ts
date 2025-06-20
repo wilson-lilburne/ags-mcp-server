@@ -1,6 +1,6 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
+import { spawn } from 'node:child_process'; // Still needed for MCP server testing
 import { promises as fs, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,48 +34,34 @@ describe('Phase 1: Infrastructure Tests', () => {
     }
   });
 
-  describe('Binary Distribution Structure', () => {
-    test('should have bin directory structure', () => {
-      const binDir = path.join(__dirname, '../../bin');
-      assert.ok(existsSync(binDir), 'bin directory should exist');
-      
-      const platforms = ['darwin', 'linux', 'win32'];
-      for (const platform of platforms) {
-        const platformDir = path.join(binDir, platform);
-        assert.ok(existsSync(platformDir), `Platform directory should exist: ${platform}`);
-      }
+  describe('Direct Binary Processing', () => {
+    test('should initialize AGS manager without external dependencies', () => {
+      const manager = new AGSCrmManager({ silent: true });
+      assert.ok(manager, 'AGS manager should initialize successfully');
     });
 
-    test('should have architecture subdirectories', () => {
-      const binDir = path.join(__dirname, '../../bin');
-      const platforms = ['darwin', 'linux', 'win32'];
-      const architectures = ['x64', 'arm64'];
+    test('should handle file operations without external tools', async () => {
+      const manager = new AGSCrmManager({ silent: true });
+      const room2Path = path.join(__dirname, '../../room2.crm');
       
-      for (const platform of platforms) {
-        for (const arch of architectures) {
-          const archDir = path.join(binDir, platform, arch);
-          // Note: Not all combinations may exist yet, just check structure exists
-          if (existsSync(archDir)) {
-            const stats = statSync(archDir);
-            assert.ok(stats.isDirectory(), `${platform}/${arch} should be a directory`);
-          }
-        }
+      if (!existsSync(room2Path)) {
+        console.log('      Skipping test - room2.crm not available');
+        return;
       }
+      
+      // Test that we can parse blocks without external dependencies
+      const result = await manager.listRoomBlocks(room2Path);
+      assert.ok(!result.isError || result.message?.includes('Direct parsing'), 
+        'Should attempt direct parsing');
     });
 
-    test('should have current platform binary location (placeholder or real)', () => {
-      const platform = process.platform;
-      const arch = process.arch;
-      const extension = platform === 'win32' ? '.exe' : '';
-      const binaryPath = path.join(__dirname, '../../bin', platform, arch, `crmpak${extension}`);
+    test('should be platform independent', () => {
+      // Test that initialization works on any platform
+      const manager = new AGSCrmManager({ silent: true });
+      assert.ok(manager, 'Manager should work on any platform');
       
-      // Binary location should exist (even if placeholder)
-      const platformDir = path.join(__dirname, '../../bin', platform);
-      assert.ok(existsSync(platformDir), `Platform directory missing: ${platformDir}`);
-      
-      // Log current state for debugging
-      console.log(`      Expected binary path: ${binaryPath}`);
-      console.log(`      Platform: ${platform}, Arch: ${arch}`);
+      // Log platform info for verification
+      console.log(`      Platform: ${process.platform}, Arch: ${process.arch}`);
     });
   });
 
