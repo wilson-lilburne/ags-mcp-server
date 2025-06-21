@@ -28,13 +28,19 @@ export interface BlockParsingResult {
  */
 export class RoomBlockParser {
   private buffer: Buffer;
-  private reader: AGSBinaryReader;
-  private version: RoomFileVersion;
+  private reader: AGSBinaryReader | null = null;
+  private version: RoomFileVersion | null = null;
+  private initError: string | null = null;
 
   constructor(buffer: Buffer) {
     this.buffer = buffer;
-    this.version = RoomVersionDetector.getRoomVersion(buffer);
-    this.reader = new AGSBinaryReader(buffer, this.version);
+    
+    try {
+      this.version = RoomVersionDetector.getRoomVersion(buffer);
+      this.reader = new AGSBinaryReader(buffer, this.version);
+    } catch (error) {
+      this.initError = error instanceof Error ? error.message : String(error);
+    }
   }
 
   /**
@@ -42,6 +48,16 @@ export class RoomBlockParser {
    * Based on AGS DataExtParser::OpenBlock()
    */
   parseBlocks(): BlockParsingResult {
+    // Check if initialization failed
+    if (this.initError || !this.reader || this.version === null) {
+      return {
+        blocks: [],
+        success: false,
+        error: this.initError || 'Parser initialization failed',
+        version: this.version || RoomFileVersion.kRoomVersion_Current
+      };
+    }
+    
     try {
       const blocks: RoomBlock[] = [];
       
@@ -50,14 +66,11 @@ export class RoomBlockParser {
       
       // Determine format flags based on version
       const flags = this.getFormatFlags();
-      const use32BitIds = (flags & ROOM_FILE_CONSTANTS.kDataExt_NumID32) !== 0;
       const use64BitOffsets = (flags & ROOM_FILE_CONSTANTS.kDataExt_File64) !== 0;
       
       while (!this.reader.isAtEnd()) {
-        // Read block ID
-        const blockId = use32BitIds ? 
-          this.reader.readBlockId32() : 
-          this.reader.readBlockId8();
+        // Read block ID (always 8-bit for room files)
+        const blockId = this.reader.readBlockId8();
         
         if (blockId < 0) {
           // End of blocks or read error
@@ -78,7 +91,7 @@ export class RoomBlockParser {
           blockName = this.readStringId();
           blockLength = this.reader.readBlockLength(true); // Always 64-bit for string IDs
         } else {
-          // Old-style numeric ID block
+          // Old-style numeric ID block  
           blockLength = this.reader.readBlockLength(use64BitOffsets);
           blockName = this.getBlockNameById(blockId);
         }
@@ -123,21 +136,21 @@ export class RoomBlockParser {
 
   /**
    * Get format flags based on room version
-   * Newer versions use 32-bit IDs and potentially 64-bit offsets
+   * Based on AGS source: kDataExt_NumID8 | ((data_ver < kRoomVersion_350) ? kDataExt_File32 : kDataExt_File64)
    */
   private getFormatFlags(): number {
     let flags = 0;
     
-    // Use 32-bit block IDs for newer versions
-    if (this.version >= RoomFileVersion.kRoomVersion_341) {
-      flags |= ROOM_FILE_CONSTANTS.kDataExt_NumID32;
-    }
+    if (this.version === null) return flags;
     
-    // Use 64-bit file offsets for very large files (rare)
-    // This is a heuristic - AGS doesn't clearly specify when this is used
-    if (this.buffer.length > 0x7FFFFFFF) {
+    // AGS always uses 8-bit block IDs for room files (kDataExt_NumID8 is default)
+    // 32-bit IDs are NOT used for room files according to AGS source
+    
+    // Use 64-bit file offsets for versions >= kRoomVersion_350 (version 25)
+    if (this.version >= RoomFileVersion.kRoomVersion_350) {
       flags |= ROOM_FILE_CONSTANTS.kDataExt_File64;
     }
+    // Else: use 32-bit file offsets (kDataExt_File32 is default)
     
     return flags;
   }
@@ -146,6 +159,10 @@ export class RoomBlockParser {
    * Read 16-byte string ID for new-style blocks
    */
   private readStringId(): string {
+    if (!this.reader) {
+      throw new Error('Reader not initialized');
+    }
+    
     const stringBytes = this.buffer.subarray(
       this.reader.getOffset(), 
       this.reader.getOffset() + 16
@@ -184,6 +201,8 @@ export class RoomBlockParser {
    * Extract specific block data
    */
   extractBlock(blockId: string | number): Buffer | null {
+    if (this.initError || !this.reader) return null;
+    
     const result = this.parseBlocks();
     if (!result.success) return null;
     
@@ -202,7 +221,7 @@ export class RoomBlockParser {
   /**
    * Get room file version
    */
-  getVersion(): RoomFileVersion {
+  getVersion(): RoomFileVersion | null {
     return this.version;
   }
 }

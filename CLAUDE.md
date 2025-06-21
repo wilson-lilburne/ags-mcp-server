@@ -220,6 +220,37 @@ async function processRooms(roomFiles) {
 - [AGS Repository](https://github.com/adventuregamestudio/ags) - Source code and tools
 - [Room File Format](https://github.com/adventuregamestudio/ags/blob/master/Common/game/room_file.cpp) - Technical implementation details
 
+### **🔧 AGS Repository Access via MCP**
+
+**IMPORTANT: When modifying binary parsing logic, always reference the official AGS source code!**
+
+This project includes MCP tools to access the AGS repository for accurate binary format information:
+
+```javascript
+// Use these MCP tools when updating binary parsing:
+mcp__gitmcp__fetch_ags_documentation()        // Get full AGS documentation
+mcp__gitmcp__search_ags_documentation(query)  // Search docs for specific topics
+mcp__gitmcp__search_ags_code(query)          // Search AGS source code
+mcp__gitmcp__fetch_generic_url_content(url)  // Fetch specific files
+```
+
+**Critical Use Cases:**
+1. **Before changing binary offsets** - Verify against `room_file.cpp` 
+2. **Adding new room data parsing** - Check latest AGS format changes
+3. **Updating block structure** - Reference current AGS implementation
+4. **Debugging format issues** - Compare with authoritative source
+
+**Example Usage:**
+```javascript
+// When updating hotspot parsing, first check AGS source:
+// 1. Search for "hotspot" in AGS code
+// 2. Find room_file.cpp hotspot parsing logic  
+// 3. Verify binary offsets and format
+// 4. Update CLAUDE.md with any format changes discovered
+```
+
+This ensures binary parsing stays aligned with the official AGS implementation!
+
 ## Development Insights
 
 ### Testing Strategy

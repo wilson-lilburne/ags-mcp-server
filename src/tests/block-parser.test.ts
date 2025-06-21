@@ -71,9 +71,11 @@ describe('Block Parser Component Tests', () => {
         for (const block of result.blocks.slice(0, 3)) {
           assert.ok(typeof block.id === 'number', 'Block should have numeric ID');
           assert.ok(typeof block.name === 'string', 'Block should have string name');
-          assert.ok(typeof block.offset === 'number', 'Block should have numeric offset');
-          assert.ok(typeof block.size === 'number', 'Block should have numeric size');
-          console.log(`      - ${block.name} (ID: ${block.id}, Size: ${block.size})`);
+          assert.ok(typeof block.offset === 'string', 'Block should have string offset');
+          assert.ok(typeof block.size === 'string', 'Block should have string size');
+          assert.ok(typeof block.rawOffset === 'number', 'Block should have numeric rawOffset');
+          assert.ok(typeof block.rawSize === 'number', 'Block should have numeric rawSize');
+          console.log(`      - ${block.name} (ID: ${block.id}, Size: ${block.rawSize}, Offset: ${block.rawOffset})`);
         }
       } else {
         console.log(`      ℹ Block parsing failed (expected for some formats): ${result.error}`);
