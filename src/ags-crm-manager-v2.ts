@@ -241,6 +241,16 @@ export class AGSCrmManagerV2 {
     outputFile?: string
   ): Promise<{ content: string; isError?: boolean; message?: string }> {
     try {
+      // Validate modifications first
+      const validationError = this.validateHotspotModifications(modifications);
+      if (validationError) {
+        return {
+          content: validationError,
+          isError: true,
+          message: validationError
+        };
+      }
+
       // Get current hotspots
       const hotspotsResult = await this.getRoomHotspots(roomFile);
       if (hotspotsResult.isError) {
@@ -675,5 +685,48 @@ export class AGSCrmManagerV2 {
     }
 
     return result.sort((a, b) => a.id - b.id);
+  }
+
+  /**
+   * Validate hotspot modifications for proper ranges and formats
+   */
+  private validateHotspotModifications(modifications: HotspotModification[]): string | null {
+    for (const mod of modifications) {
+      // Validate hotspot ID range (AGS supports 0-49)
+      if (mod.id < 0 || mod.id > 49) {
+        return `Invalid hotspot ID: ${mod.id}. AGS supports hotspot IDs 0-49.`;
+      }
+
+      // Validate script name format
+      if (mod.scriptName !== undefined) {
+        if (!mod.scriptName.match(/^h[A-Za-z][A-Za-z0-9_]*$/)) {
+          return `Invalid script name: "${mod.scriptName}". Script names must be valid identifier starting with 'h'.`;
+        }
+        if (mod.scriptName.length > 40) {
+          return `Script name too long: "${mod.scriptName}". Maximum length is 40 characters.`;
+        }
+      }
+
+      // Validate hotspot name length
+      if (mod.name !== undefined) {
+        if (mod.name.length === 0 || mod.name.length > 50) {
+          return `Hotspot name length invalid: "${mod.name}". Name length must be 1-50 characters.`;
+        }
+      }
+
+      // Validate walk-to coordinates
+      if (mod.walkTo !== undefined) {
+        if (mod.walkTo.x < 0 || mod.walkTo.x > 10000 || mod.walkTo.y < 0 || mod.walkTo.y > 10000) {
+          return `Invalid walk-to coordinates: (${mod.walkTo.x}, ${mod.walkTo.y}). Coordinates must be between 0 and 10000.`;
+        }
+      }
+
+      // Validate description length
+      if (mod.description !== undefined && mod.description.length > 200) {
+        return `Description too long: Maximum length is 200 characters.`;
+      }
+    }
+
+    return null; // No validation errors
   }
 }

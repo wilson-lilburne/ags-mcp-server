@@ -143,7 +143,7 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
 
   describe('Enhanced Interaction Management', () => {
     test('should add hotspot interaction with validation', async () => {
-      const result = await manager.addHotspotInteraction(room2Path, 0, 'Use', 'staffDoor_Use');
+      const result = await manager.addHotspotInteraction(room2Path, 1, 'Use', 'staffDoor_Use');
       
       assert.ok(!result.isError, `Should not error: ${result.message}`);
       assert.ok(result.content.includes('Added interaction metadata'), 'Should indicate interaction metadata addition');
@@ -154,7 +154,7 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
     });
 
     test('should validate event types', async () => {
-      const result = await manager.addHotspotInteraction(room2Path, 0, 'InvalidEvent', 'test_function');
+      const result = await manager.addHotspotInteraction(room2Path, 1, 'InvalidEvent', 'test_function');
       
       assert.ok(result.isError, 'Should error with invalid event');
       assert.ok(result.content.includes('Invalid event type'), 'Should specify event error');
@@ -162,14 +162,14 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
     });
 
     test('should validate function names', async () => {
-      const result = await manager.addHotspotInteraction(room2Path, 0, 'Look', '123InvalidFunction');
+      const result = await manager.addHotspotInteraction(room2Path, 1, 'Look', '123InvalidFunction');
       
       assert.ok(result.isError, 'Should error with invalid function name');
       assert.ok(result.content.includes('must be valid identifier'), 'Should specify identifier requirement');
     });
 
     test('should remove hotspot interactions', async () => {
-      const result = await manager.removeHotspotInteraction(room2Path, 0, 'Look');
+      const result = await manager.removeHotspotInteraction(room2Path, 1, 'Look');
       
       assert.ok(!result.isError, `Should not error: ${result.message}`);
       assert.ok(result.content.includes('Would remove Look interaction'), 'Should indicate removal');
@@ -177,11 +177,11 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
     });
 
     test('should list hotspot interactions', async () => {
-      const result = await manager.listHotspotInteractions(room2Path, 0);
+      const result = await manager.listHotspotInteractions(room2Path, 1);
       
       assert.ok(!result.isError, `Should not error: ${result.message}`);
       assert.ok(typeof result.content === 'object', 'Should return object');
-      assert.equal(result.content.hotspotId, 0, 'Should have correct hotspot ID');
+      assert.equal(result.content.hotspotId, 1, 'Should have correct hotspot ID');
       // Note: hotspot name may have changed due to previous modifications in the test file
       assert.ok(Array.isArray(result.content.availableInteractions), 'Should have interactions array');
       assert.ok(Array.isArray(result.content.supportedEvents), 'Should have supported events array');
@@ -251,7 +251,7 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
 
   describe('MCP Protocol Integration for Phase 2 Tools', () => {
     test('should expose modify_hotspot_properties via MCP', async () => {
-      const modifications = [{ id: 0, name: 'Test Door' }];
+      const modifications = [{ id: 1, name: 'Test Door' }];
       const result = await testMCPTool('modify_hotspot_properties', {
         roomFile: room2Path,
         modifications
@@ -262,7 +262,7 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
     });
 
     test('should expose update_hotspot_walkto_coordinates via MCP', async () => {
-      const coordinates = [{ id: 0, x: 100, y: 100 }];
+      const coordinates = [{ id: 1, x: 100, y: 100 }];
       const result = await testMCPTool('update_hotspot_walkto_coordinates', {
         roomFile: room2Path,
         coordinates
@@ -275,14 +275,14 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
     test('should expose list_hotspot_interactions via MCP', async () => {
       const result = await testMCPTool('list_hotspot_interactions', {
         roomFile: room2Path,
-        hotspotId: 0
+        hotspotId: 1
       });
       
       assert.ok(result.success, `MCP call should succeed: ${result.error}`);
       assert.ok(result.response.result, 'Should have result field');
       
       const content = JSON.parse(result.response.result.content[0].text);
-      assert.equal(content.hotspotId, 0, 'Should return correct hotspot data');
+      assert.equal(content.hotspotId, 1, 'Should return correct hotspot data');
     });
 
     test('should expose remove_hotspot_interaction via MCP', async () => {
@@ -325,7 +325,7 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
 
     test('should handle maximum string lengths', async () => {
       const longName = 'a'.repeat(60); // Exceeds 50 char limit
-      const modifications = [{ id: 0, name: longName }];
+      const modifications = [{ id: 1, name: longName }];
 
       const result = await manager.modifyHotspotProperties(room2Path, modifications);
       

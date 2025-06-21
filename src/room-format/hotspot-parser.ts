@@ -36,8 +36,9 @@ export interface HotspotParsingResult {
  */
 export class RoomHotspotParser {
   private buffer: Buffer;
-  private version: RoomFileVersion;
-  private reader: AGSBinaryReader;
+  private version: RoomFileVersion | null;
+  private reader: AGSBinaryReader | null;
+  private initError: string | null = null;
 
   // Known hotspot data offsets (determined through analysis)
   private static readonly HOTSPOT_DISPLAY_NAMES_OFFSET = 0x101;
@@ -47,8 +48,15 @@ export class RoomHotspotParser {
 
   constructor(buffer: Buffer) {
     this.buffer = buffer;
-    this.version = RoomVersionDetector.getRoomVersion(buffer);
-    this.reader = new AGSBinaryReader(buffer, this.version);
+    
+    try {
+      this.version = RoomVersionDetector.getRoomVersion(buffer);
+      this.reader = new AGSBinaryReader(buffer, this.version);
+    } catch (error) {
+      this.initError = error instanceof Error ? error.message : String(error);
+      this.version = null;
+      this.reader = null;
+    }
   }
 
   /**
@@ -56,6 +64,22 @@ export class RoomHotspotParser {
    * Phase 1: Display names, Phase 2: Script names
    */
   parseHotspots(): HotspotParsingResult {
+    // Check for initialization errors
+    if (this.initError) {
+      return {
+        hotspots: this.getDefaultHotspots(),
+        success: false,
+        error: this.initError,
+        metadata: {
+          version: RoomFileVersion.kRoomVersion_Current,
+          displayNamesFound: 0,
+          scriptNamesFound: 0,
+          displayNamesOffset: RoomHotspotParser.HOTSPOT_DISPLAY_NAMES_OFFSET,
+          scriptNamesOffset: -1
+        }
+      };
+    }
+    
     try {
       const result = this.parseHotspotsInternal();
       return {
@@ -68,7 +92,7 @@ export class RoomHotspotParser {
         success: false,
         error: error instanceof Error ? error.message : String(error),
         metadata: {
-          version: this.version,
+          version: this.version!,
           displayNamesFound: 0,
           scriptNamesFound: 0,
           displayNamesOffset: RoomHotspotParser.HOTSPOT_DISPLAY_NAMES_OFFSET,
@@ -82,6 +106,10 @@ export class RoomHotspotParser {
    * Internal parsing implementation
    */
   private parseHotspotsInternal(): HotspotParsingResult {
+    if (!this.version || !this.reader) {
+      throw new Error('Parser not properly initialized');
+    }
+    
     const params = RoomVersionDetector.getParsingParams(this.version);
     
     // Phase 1: Read display names
@@ -113,7 +141,7 @@ export class RoomHotspotParser {
       hotspots,
       success: true,
       metadata: {
-        version: this.version,
+        version: this.version!,
         displayNamesFound: displayNamesResult.names.length,
         scriptNamesFound: scriptNamesResult.names.length,
         displayNamesOffset: RoomHotspotParser.HOTSPOT_DISPLAY_NAMES_OFFSET,
@@ -126,16 +154,16 @@ export class RoomHotspotParser {
    * Phase 1: Read hotspot display names
    */
   private readDisplayNames(): { names: string[], nextOffset: number } {
-    this.reader.setOffset(RoomHotspotParser.HOTSPOT_DISPLAY_NAMES_OFFSET);
+    this.reader!.setOffset(RoomHotspotParser.HOTSPOT_DISPLAY_NAMES_OFFSET);
     
-    const displayNames = this.reader.readStringSequence(
+    const displayNames = this.reader!.readStringSequence(
       ROOM_FILE_CONSTANTS.MAX_ROOM_HOTSPOTS,
       { maxStringLength: 50 }
     );
 
     return {
       names: displayNames,
-      nextOffset: this.reader.getOffset()
+      nextOffset: this.reader!.getOffset()
     };
   }
 
@@ -151,8 +179,8 @@ export class RoomHotspotParser {
       return { names: [], offset: -1 };
     }
 
-    this.reader.setOffset(scriptNamesOffset);
-    const scriptNames = this.reader.readStringSequence(
+    this.reader!.setOffset(scriptNamesOffset);
+    const scriptNames = this.reader!.readStringSequence(
       ROOM_FILE_CONSTANTS.MAX_ROOM_HOTSPOTS,
       { maxStringLength: 50 }
     );
@@ -343,7 +371,8 @@ export class RoomHotspotParser {
     const possibleOffsets: number[] = [];
     
     // Search for length-prefixed string patterns that could be hotspot names
-    for (let offset = 0x100; offset < Math.min(buffer.length - 100, 0x300); offset += 4) {
+    // Check every byte to catch all possible offsets including 0x101
+    for (let offset = 0x100; offset < Math.min(buffer.length - 100, 0x300); offset += 1) {
       if (this.validateHotspotData(buffer, offset)) {
         // Additional validation: check if this looks like a hotspot name
         try {
