@@ -11,11 +11,13 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "test": "npm run build && node --test dist/tests/**/*.test.js",
+    "test": "npm run build && node --test dist/tests/room-version.test.js dist/tests/hotspot-parser.test.js dist/tests/infrastructure.test.js dist/tests/binary-reader.test.js dist/tests/block-parser.test.js dist/tests/room-writer.test.js dist/tests/core-functions.test.js dist/tests/phase2-features.test.js",
     "test:watch": "npm run build && node --test --watch dist/tests/**/*.test.js",
     "test:infrastructure": "npm run build && node --test dist/tests/infrastructure.test.js",
     "test:core": "npm run build && node --test dist/tests/core-functions.test.js",
-    "demo": "npm run build && node dist/demo.js"
+    "demo": "npm run build && node dist/demo.js",
+    "debug:script-names": "npm run build && node debug-script-names.js",
+    "test:mcp": "npm run build && node claude_desktop_test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

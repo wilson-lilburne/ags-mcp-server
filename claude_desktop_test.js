@@ -1,6 +1,20 @@
 #!/usr/bin/env node
-
-// Simulate what Claude Desktop would receive from the MCP server
+/**
+ * MCP Protocol Integration Test
+ * 
+ * Simulates what Claude Desktop would receive from the MCP server by testing
+ * the actual JSON-RPC protocol communication. This provides end-to-end testing
+ * of the MCP server from an external client perspective.
+ * 
+ * Tests:
+ * - Tool listing (tools/list)
+ * - Tool execution (tools/call)
+ * - Response format validation
+ * - Error handling
+ * 
+ * Usage: node claude_desktop_test.js
+ * Requires: room2.crm file in the project root
+ */
 import { spawn } from 'child_process';
 
 async function testMCPServerResponse() {

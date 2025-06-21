@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { AGSCrmManager } from './ags-crm-manager.js';
+import { AGSCrmManagerV2 } from './ags-crm-manager-v2.js';
 import path from 'path';
 
 /**
@@ -9,7 +9,7 @@ import path from 'path';
 async function runTests() {
   console.log('🧪 Testing AGS CRM Manager...\n');
 
-  const manager = new AGSCrmManager();
+  const manager = new AGSCrmManagerV2();
 
   // Test 1: Check if we can find the crmpak binary
   console.log('1. Testing crmpak availability...');

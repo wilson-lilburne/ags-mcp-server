@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { promises as fs, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AGSCrmManager } from '../ags-crm-manager.js';
+import { AGSCrmManagerV2 } from '../ags-crm-manager-v2.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,7 +13,7 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
   let testDataDir: string;
   let tempDir: string;
   let room2Path: string;
-  let manager: AGSCrmManager;
+  let manager: AGSCrmManagerV2;
 
   before(async () => {
     // Setup test environment
@@ -29,8 +29,8 @@ describe('Phase 2: Enhanced Hotspot Operations Tests', () => {
     room2Path = path.join(tempDir, 'room2-test.crm');
     await fs.copyFile(originalRoom2, room2Path);
 
-    // Initialize CRM manager
-    manager = new AGSCrmManager({ silent: true });
+    // Initialize CRM manager v2
+    manager = new AGSCrmManagerV2({ silent: true });
   });
 
   after(async () => {

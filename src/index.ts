@@ -8,7 +8,7 @@ import {
   McpError,
   ErrorCode,
 } from '@modelcontextprotocol/sdk/types.js';
-import { AGSCrmManager } from './ags-crm-manager.js';
+import { AGSCrmManagerV2 } from './ags-crm-manager-v2.js';
 import { Command } from 'commander';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -27,7 +27,7 @@ const packageVersion = packageJson.version;
  */
 class AGSMcpServer {
   private server: Server;
-  private crmManager: AGSCrmManager;
+  private crmManager: AGSCrmManagerV2;
 
   constructor(options: { silent?: boolean } = {}) {
     this.server = new Server(
@@ -43,7 +43,7 @@ class AGSMcpServer {
     );
 
     // When running in JSON-RPC mode, we want to suppress diagnostic messages
-    this.crmManager = new AGSCrmManager({ silent: options.silent });
+    this.crmManager = new AGSCrmManagerV2({ silent: options.silent });
     this.setupHandlers();
   }
 

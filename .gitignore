@@ -46,3 +46,8 @@ coverage/
 *.crm
 *.agf
 *.ags
+
+# Backup files
+*.backup*
+*.bak
+*~

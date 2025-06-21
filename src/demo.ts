@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { AGSCrmManager } from './ags-crm-manager.js';
+import { AGSCrmManagerV2 } from './ags-crm-manager-v2.js';
 import { writeFileSync, mkdirSync } from 'fs';
 import path from 'path';
 
@@ -11,7 +11,7 @@ import path from 'path';
 async function runDemo() {
   console.log('🎮 AGS MCP Server Demo\n');
 
-  const manager = new AGSCrmManager();
+  const manager = new AGSCrmManagerV2();
   
   // Create demo directory
   const demoDir = path.join(process.cwd(), 'demo');

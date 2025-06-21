@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { promises as fs, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AGSCrmManager } from '../ags-crm-manager.js';
+import { AGSCrmManagerV2 } from '../ags-crm-manager-v2.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,7 +13,7 @@ describe('Phase 2: Core Function Tests', () => {
   let testDataDir: string;
   let tempDir: string;
   let room2Path: string;
-  let manager: AGSCrmManager;
+  let manager: AGSCrmManagerV2;
 
   before(async () => {
     // Setup test environment
@@ -29,8 +29,8 @@ describe('Phase 2: Core Function Tests', () => {
     const testRoom2 = path.join(testDataDir, 'room2.crm');
     await fs.copyFile(room2Path, testRoom2);
 
-    // Initialize CRM manager
-    manager = new AGSCrmManager({ silent: true });
+    // Initialize CRM manager v2
+    manager = new AGSCrmManagerV2({ silent: true });
   });
 
   after(async () => {
@@ -44,33 +44,28 @@ describe('Phase 2: Core Function Tests', () => {
     }
   });
 
-  describe('Binary Detection and Availability', () => {
-    test('should detect built crmpak binary', async () => {
-      const platform = process.platform;
-      const arch = process.arch;
-      const extension = platform === 'win32' ? '.exe' : '';
-      const expectedBinaryPath = path.join(__dirname, '../../bin', platform, arch, `crmpak${extension}`);
-      
-      assert.ok(existsSync(expectedBinaryPath), `Built binary should exist: ${expectedBinaryPath}`);
-      
-      const stats = statSync(expectedBinaryPath);
-      assert.ok(stats.size > 50000, `Binary should be substantial size (${stats.size} bytes)`);
+  describe('Direct Binary Operations (No External Dependencies)', () => {
+    test('should have functional AGS CRM Manager V2 with direct parsing', () => {
+      // The v2 manager uses direct binary parsing - no external dependencies
+      assert.ok(manager instanceof AGSCrmManagerV2, 'Manager should be instance of AGSCrmManagerV2');
     });
 
-    test('should execute crmpak binary successfully', async () => {
-      const platform = process.platform;
-      const arch = process.arch;
-      const extension = platform === 'win32' ? '.exe' : '';
-      const binaryPath = path.join(__dirname, '../../bin', platform, arch, `crmpak${extension}`);
-      
-      const result = await testBinaryExecution(binaryPath);
-      assert.ok(result.success, `Binary should execute: ${result.error}`);
-      assert.ok(result.output.includes('crmpak'), 'Binary should identify itself');
+    test('should parse room version directly from binary data', async () => {
+      const buffer = await fs.readFile(room2Path);
+      const version = buffer.readUInt16LE(0);
+      assert.ok(version > 0, `Should read valid room version: ${version}`);
+      assert.ok(version <= 50, 'Version should be reasonable (≤50)');
     });
 
-    test('should have functional AGS CRM Manager with real binary', () => {
-      // The manager should initialize without errors when binary is available
-      assert.ok(manager instanceof AGSCrmManager, 'Manager should be instance of AGSCrmManager');
+    test('should read hotspot data directly from binary', async () => {
+      const buffer = await fs.readFile(room2Path);
+      const hotspotOffset = 0x101;
+      
+      // Should be able to read length-prefixed string at hotspot offset
+      if (hotspotOffset + 4 < buffer.length) {
+        const nameLength = buffer.readUInt32LE(hotspotOffset);
+        assert.ok(nameLength >= 0 && nameLength <= 100, `Valid name length: ${nameLength}`);
+      }
     });
   });
 
@@ -305,28 +300,6 @@ describe('Phase 2: Core Function Tests', () => {
 });
 
 // Helper functions
-async function testBinaryExecution(binaryPath: string): Promise<{ success: boolean; output: string; error?: string }> {
-  return new Promise((resolve) => {
-    const proc = spawn(binaryPath, ['--help'], { timeout: 5000 });
-    let output = '';
-    let error = '';
-
-    proc.stdout.on('data', (data) => output += data.toString());
-    proc.stderr.on('data', (data) => error += data.toString());
-
-    proc.on('close', (code) => {
-      resolve({ 
-        success: output.length > 0 || error.length > 0, 
-        output: output + error,
-        error: code !== 0 ? `Exit code: ${code}` : undefined
-      });
-    });
-
-    proc.on('error', (err) => {
-      resolve({ success: false, output: '', error: err.message });
-    });
-  });
-}
 
 async function testMCPTool(toolName: string, args: any): Promise<{ 
   success: boolean; 

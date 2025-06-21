@@ -404,5 +404,32 @@ When hotspot parsing fails:
 - **v0.1.7**: Fixed hotspot extraction to read from Main block instead of ObjNames  
 - **v0.1.0**: Initial implementation with basic .crm file support
 
+## Development Scripts
+
+The project includes development and debugging scripts in the root directory:
+
+### 🔧 **debug-script-names.js**
+Binary format debugging tool for understanding AGS room file structure.
+```bash
+node debug-script-names.js
+```
+- Shows hex offsets and hotspot name locations
+- Useful for debugging two-phase parsing issues
+- Provides detailed binary structure analysis
+
+### 🧪 **claude_desktop_test.js** 
+End-to-end MCP protocol integration test.
+```bash
+node claude_desktop_test.js
+```
+- Tests actual JSON-RPC communication
+- Simulates Claude Desktop interaction
+- Validates MCP response formats
+- Tests tool listing and execution
+
+These scripts require `room2.crm` in the project root and compiled TypeScript (`npm run build`).
+
+**Note**: Backup files (`*.backup*`, `*.bak`) are automatically ignored by git and should be cleaned up regularly during development.
+
 ---
-*Last updated: June 17, 2025*
+*Last updated: June 21, 2025*

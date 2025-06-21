@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process'; // Still needed for MCP server testi
 import { promises as fs, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AGSCrmManager } from '../ags-crm-manager.js';
+import { AGSCrmManagerV2 } from '../ags-crm-manager-v2.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,12 +36,12 @@ describe('Phase 1: Infrastructure Tests', () => {
 
   describe('Direct Binary Processing', () => {
     test('should initialize AGS manager without external dependencies', () => {
-      const manager = new AGSCrmManager({ silent: true });
-      assert.ok(manager, 'AGS manager should initialize successfully');
+      const manager = new AGSCrmManagerV2({ silent: true });
+      assert.ok(manager, 'AGS manager v2 should initialize successfully');
     });
 
     test('should handle file operations without external tools', async () => {
-      const manager = new AGSCrmManager({ silent: true });
+      const manager = new AGSCrmManagerV2({ silent: true });
       const room2Path = path.join(__dirname, '../../room2.crm');
       
       if (!existsSync(room2Path)) {
@@ -57,7 +57,7 @@ describe('Phase 1: Infrastructure Tests', () => {
 
     test('should be platform independent', () => {
       // Test that initialization works on any platform
-      const manager = new AGSCrmManager({ silent: true });
+      const manager = new AGSCrmManagerV2({ silent: true });
       assert.ok(manager, 'Manager should work on any platform');
       
       // Log platform info for verification
@@ -134,8 +134,8 @@ describe('Phase 1: Infrastructure Tests', () => {
   describe('AGS CRM Manager', () => {
     test('should initialize without errors', () => {
       assert.doesNotThrow(() => {
-        new AGSCrmManager({ silent: true });
-      }, 'AGSCrmManager constructor should not throw');
+        new AGSCrmManagerV2({ silent: true });
+      }, 'AGSCrmManagerV2 constructor should not throw');
     });
 
     test('should initialize in silent mode without console output', () => {
@@ -148,7 +148,7 @@ describe('Phase 1: Infrastructure Tests', () => {
       console.log = (msg) => { consoleOutput += msg; };
       
       try {
-        new AGSCrmManager({ silent: true });
+        new AGSCrmManagerV2({ silent: true });
         // Should not produce console output in silent mode
         assert.equal(consoleOutput, '', 'Silent mode should not produce console output');
       } finally {
@@ -158,7 +158,7 @@ describe('Phase 1: Infrastructure Tests', () => {
     });
 
     test('should handle operations gracefully when binary unavailable', async () => {
-      const manager = new AGSCrmManager({ silent: true });
+      const manager = new AGSCrmManagerV2({ silent: true });
       const testRoom = path.join(testDataDir, 'room2.crm');
       
       // Operations should return error results, not throw exceptions
